@@ -2,9 +2,9 @@
 // @name         JD Lite
 // @name:zh-CN   京东精简版
 // @namespace    https://github.com/hxueh
-// @version      0.2.6
-// @description  Strips JD desktop pages down to search, product images, price, SKU and buy buttons, blocks tracking scripts and beacons, removes popups, side rails, sponsored results and recommendations, and restyles search and item pages in an iOS look that works at phone and desktop width.
-// @description:zh-CN 把京东桌面版精简为搜索、商品图、价格、规格和购买按钮，拦截统计脚本与上报请求，移除弹窗、侧边栏、推广商品和推荐模块，并以 iOS 风格重绘搜索页和商品页，手机和电脑宽度都能正常使用。
+// @version      0.3.0
+// @description  Strips JD desktop pages down to search, product images, price, SKU and buy buttons, blocks tracking scripts and beacons, removes popups, side rails, sponsored results and recommendations, and restyles search and item pages in an iOS look that works at phone and desktop width and follows the system dark mode.
+// @description:zh-CN 把京东桌面版精简为搜索、商品图、价格、规格和购买按钮，拦截统计脚本与上报请求，移除弹窗、侧边栏、推广商品和推荐模块，并以 iOS 风格重绘搜索页和商品页，手机和电脑宽度都能正常使用，并跟随系统深色模式。
 // @author       hxueh
 // @license      MIT
 // @homepageURL  https://github.com/hxueh
@@ -130,6 +130,10 @@
 :root {
     --jdl-bg: #f2f2f7;
     --jdl-card: #fff;
+    /* The selected segment of a segmented control, and text on a label-coloured fill. */
+    --jdl-segment: #fff;
+    --jdl-on-label: #fff;
+    --jdl-on-label-filter: brightness(0) invert(1);
     --jdl-label: #000;
     --jdl-label2: rgba(60, 60, 67, .6);
     --jdl-fill: rgba(118, 118, 128, .12);
@@ -141,6 +145,37 @@
     --jdl-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 4px 16px rgba(0, 0, 0, .04);
     --jdl-radius: 20px;
     --jdl-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
+}
+
+/* Dark mode follows the system setting with the iOS dark palette: black page,
+   elevated grey cards, white labels. color-scheme dark also gives form
+   controls and scroll bars their dark look. */
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+        --jdl-bg: #000;
+        --jdl-card: #1c1c1e;
+        --jdl-segment: #636366;
+        --jdl-label: #fff;
+        --jdl-label2: rgba(235, 235, 245, .6);
+        --jdl-fill: rgba(118, 118, 128, .24);
+        --jdl-separator: rgba(84, 84, 88, .65);
+        --jdl-tint: #ff453a;
+        --jdl-tint-soft: rgba(255, 69, 58, .18);
+        --jdl-price: #ff453a;
+        --jdl-glass: rgba(28, 28, 30, .72);
+        --jdl-shadow: none;
+        --jdl-on-label: #000;
+        --jdl-on-label-filter: brightness(0);
+    }
+    /* Neutral colours the site sets itself, tagged by the JS layer (toneTree).
+       :where() keeps the specificity at zero, so every rule in this script
+       that sets a colour still wins over these. */
+    :where([data-jdl-fg="1"]) { color: var(--jdl-label) !important; }
+    :where([data-jdl-fg="2"]) { color: var(--jdl-label2) !important; }
+    :where([data-jdl-bg="1"]) { background-color: var(--jdl-card) !important; }
+    :where([data-jdl-bg="2"]) { background-color: var(--jdl-fill) !important; }
+    :where([data-jdl-bd]) { border-color: var(--jdl-separator) !important; }
 }
 
 /* ---------- Shared frame: footer, side rails, login nag, floating layers ---------- */
@@ -343,7 +378,7 @@ html[data-jdl-page="search"] #main_search_container_wrap > .header {
 [class*="_top-bar-left-tab-item_"]::after, [class*="_top-bar-left-tab-item_"]::before,
 [class*="_top-bar-left-tab-active-line_"] { display: none !important; }
 [class*="_top-bar-left-tab-item_"][class*="_top-bar-left-tab-active_"] {
-    background: var(--jdl-card) !important; box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 0 0 .5px rgba(0, 0, 0, .04);
+    background: var(--jdl-segment) !important; box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 0 0 .5px rgba(0, 0, 0, .04);
     font-weight: 600 !important;
 }
 /* Delivery address, grid/list switch and the banner slot beside the tabs. */
@@ -396,12 +431,12 @@ html[data-jdl-page="search"] #main_search_container_wrap > .header {
    same treatment as the selected scope tab, instead of JD's red text. */
 [class*="_sort-tag-button__active_"], [class*="_trigger-wrap_"][class*="active"],
 [class*="_box-bar-middle_"] > .box-bar-item:has([class*="__active_"], [class*="-active_"]) {
-    background: var(--jdl-label) !important; color: #fff !important; box-shadow: none !important;
+    background: var(--jdl-label) !important; color: var(--jdl-on-label) !important; box-shadow: none !important;
 }
 [class*="_sort-tag-button__active_"] *, [class*="_trigger-wrap_"][class*="active"] *,
-[class*="_box-bar-middle_"] > .box-bar-item:has([class*="__active_"], [class*="-active_"]) * { color: #fff !important; }
+[class*="_box-bar-middle_"] > .box-bar-item:has([class*="__active_"], [class*="-active_"]) * { color: var(--jdl-on-label) !important; }
 [class*="_sort-tag-button__active_"] img, [class*="_trigger-wrap_"][class*="active"] img,
-[class*="_box-bar-middle_"] > .box-bar-item:has([class*="__active_"], [class*="-active_"]) img { filter: brightness(0) invert(1); }
+[class*="_box-bar-middle_"] > .box-bar-item:has([class*="__active_"], [class*="-active_"]) img { filter: var(--jdl-on-label-filter); }
 /* Empty checkbox items carry only an icon badge (a sale logo), not a filter word. */
 [class*="_box-bar-middle_"] > .box-bar-item:empty { display: none !important; }
 
@@ -530,7 +565,7 @@ html body [data-jdl-ad][data-jdl-ad][data-jdl-ad] { display: none !important; }
     min-width: 36px; height: 36px !important; line-height: 36px !important; padding: 0 12px !important;
     box-sizing: border-box; text-align: center;
 }
-[class*="_pagination_item_"][class*="_active_"] { background: var(--jdl-label) !important; color: #fff !important; box-shadow: none !important; }
+[class*="_pagination_item_"][class*="_active_"] { background: var(--jdl-label) !important; color: var(--jdl-on-label) !important; box-shadow: none !important; }
 [class*="_pagination_toPageNum_"] input {
     width: 48px !important; height: 36px !important; margin: 0 6px !important; padding: 0 8px !important;
     border: 0 !important; border-radius: 10px !important; background: var(--jdl-fill) !important;
@@ -983,6 +1018,51 @@ html body [data-jdl-hidden][data-jdl-hidden][data-jdl-hidden] { display: none !i
         }
     };
 
+    // Dark mode. The CSS recolours what this script styles, but the rest of
+    // the page keeps the site's fixed colours: dark grey text, white panels
+    // and light grey borders, which are unreadable or glaring on black. CSS
+    // cannot select an element by its colour, so in dark mode each element's
+    // computed colours are read once and the neutral ones are tagged; the
+    // dark CSS block maps the tags to the palette. Coloured text and fills
+    // (prices, red labels) have a high chroma and keep their colour.
+    const DARK = matchMedia('(prefers-color-scheme: dark)');
+    const NEUTRAL_CHROMA = 48;
+    // Elements already checked. The late full sweeps reset it, so elements
+    // read before the site's style sheets finished loading are read again.
+    let toned = new WeakSet();
+    const parseRgb = (value) => {
+        const m = value.match(/[\d.]+/g);
+        if (!m || m.length < 3) return null;
+        const [r, g, b, a = 1] = m.map(Number);
+        return { l: (0.299 * r + 0.587 * g + 0.114 * b) / 255, chroma: Math.max(r, g, b) - Math.min(r, g, b), a };
+    };
+    const isNeutral = (c) => c && c.a > 0.5 && c.chroma < NEUTRAL_CHROMA;
+    const toneElement = (el) => {
+        if (toned.has(el)) return;
+        toned.add(el);
+        if (el instanceof SVGElement || /^(?:IMG|VIDEO|CANVAS|SCRIPT|STYLE|LINK|META)$/.test(el.tagName)) return;
+        const cs = getComputedStyle(el);
+        const fg = parseRgb(cs.color);
+        if (isNeutral(fg) && fg.l < 0.5) el.setAttribute('data-jdl-fg', fg.l < 0.3 ? '1' : '2');
+        const bg = parseRgb(cs.backgroundColor);
+        // Pure white becomes the card colour; light greys become the fill.
+        if (isNeutral(bg) && bg.l > 0.85) el.setAttribute('data-jdl-bg', bg.l > 0.97 ? '1' : '2');
+        for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
+            const bd = parseRgb(cs[`border${side}Color`]);
+            if (parseFloat(cs[`border${side}Width`]) > 0 && isNeutral(bd) && bd.l > 0.7) {
+                el.setAttribute('data-jdl-bd', '');
+                break;
+            }
+        }
+    };
+    const toneTree = (root) => {
+        if (!DARK.matches || !root || root.nodeType !== 1) return;
+        toneElement(root);
+        for (const el of root.querySelectorAll('*')) toneElement(el);
+    };
+    // Switching the system to dark while a page is open tags it then.
+    DARK.addEventListener('change', () => toneTree(document.body));
+
     // On the home page the search box is the only thing left, so start there.
     const focusSearch = () => {
         if (pageType() !== 'home') return;
@@ -997,6 +1077,7 @@ html body [data-jdl-hidden][data-jdl-hidden][data-jdl-hidden] { display: none !i
             cleanLinks(root);
             sweepPromoBlocks(root);
             sweepAi(root);
+            toneTree(root);
         }
         // Overlays are direct children of the page shell; checking only those
         // keeps getComputedStyle calls cheap on large result pages.
@@ -1034,8 +1115,9 @@ html body [data-jdl-hidden][data-jdl-hidden][data-jdl-hidden] { display: none !i
                 }
             }
         }).observe(document.body, { childList: true, subtree: true });
-        // Rendering finishes in stages; sweep again for late modules.
-        for (const ms of [1200, 3500]) setTimeout(() => sweep(), ms);
+        // Rendering finishes in stages; sweep again for late modules, and read
+        // the dark-mode colours again now that the style sheets have loaded.
+        for (const ms of [1200, 3500]) setTimeout(() => { toned = new WeakSet(); sweep(); }, ms);
         // Search paging and sorting change the URL without a reload.
         let last = location.href;
         setInterval(() => {

@@ -2,9 +2,9 @@
 // @name         JD Mobile Lite
 // @name:zh-CN   京东移动端精简搜索
 // @namespace    https://github.com/hxueh
-// @version      0.1.1
-// @description  Restyles JD's mobile web for iOS across home, categories, search, product pages, cart, account, shops, rankings, forms, and dialogs while removing app prompts and overlays.
-// @description:zh-CN 为京东移动网页统一加入 iOS 风格，覆盖首页、分类、搜索、商品详情、购物车、账户、店铺、榜单、表单和弹窗，同时移除 App 跳转提示与干扰遮罩。
+// @version      0.2.0
+// @description  Restyles JD's mobile web for iOS across home, categories, search, product pages, cart, account, shops, rankings, forms, and dialogs in light and dark mode while removing app prompts and overlays.
+// @description:zh-CN 为京东移动网页统一加入 iOS 风格，覆盖首页、分类、搜索、商品详情、购物车、账户、店铺、榜单、表单和弹窗，支持深色模式，同时移除 App 跳转提示与干扰遮罩。
 // @author       hxueh
 // @icon         data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA2NCA2NCc+PHJlY3Qgd2lkdGg9JzY0JyBoZWlnaHQ9JzY0JyByeD0nMTQnIGZpbGw9JyNlMTI1MWInLz48dGV4dCB4PSczMicgeT0nNDQnIGZvbnQtZmFtaWx5PSdIZWx2ZXRpY2EsQXJpYWwsc2Fucy1zZXJpZicgZm9udC1zaXplPScyOCcgZm9udC13ZWlnaHQ9JzcwMCcgZmlsbD0nI2ZmZicgdGV4dC1hbmNob3I9J21pZGRsZSc+SkQ8L3RleHQ+PC9zdmc+
 // @match        https://m.jd.com/*
@@ -244,6 +244,15 @@
                 --jdml-mobile-tabbar: rgba(28, 28, 30, 0.94);
                 --jdml-mobile-mask: rgba(0, 0, 0, 0.58);
             }
+
+            /* Neutral colours the site sets itself on parts this script does not
+               restyle, tagged by toneTree(). :where() keeps the specificity at zero,
+               so every rule in this script that sets a colour still wins. */
+            :where([data-jdml-fg="1"]) { color: var(--jdml-mobile-text) !important; }
+            :where([data-jdml-fg="2"]) { color: var(--jdml-mobile-secondary) !important; }
+            :where([data-jdml-bg="1"]) { background-color: var(--jdml-mobile-card) !important; }
+            :where([data-jdml-bg="2"]) { background-color: var(--jdml-mobile-fill) !important; }
+            :where([data-jdml-bd]) { border-color: var(--jdml-mobile-separator) !important; }
         }
 
         html.jdml-native-cleanup,
@@ -1884,6 +1893,50 @@
 
     let removedPromptSinceLastUnlock = false;
 
+    // Dark mode. The CSS recolours what this script styles, but the rest of
+    // the page keeps the site's fixed colours: dark grey text, white panels
+    // and light grey borders, which are unreadable or glaring on black. CSS
+    // cannot select an element by its colour, so in dark mode each element's
+    // computed colours are read once and the neutral ones are tagged; the
+    // dark CSS block maps the tags to the palette. Coloured text and fills
+    // (prices, red labels) have a high chroma and keep their colour.
+    const DARK = matchMedia('(prefers-color-scheme: dark)');
+    const NEUTRAL_CHROMA = 48;
+    // Elements already checked. The late full sweeps reset it, so elements
+    // read before the site's style sheets finished loading are read again.
+    let toned = new WeakSet();
+    const parseRgb = (value) => {
+        const m = value.match(/[\d.]+/g);
+        if (!m || m.length < 3) return null;
+        const [r, g, b, a = 1] = m.map(Number);
+        return { l: (0.299 * r + 0.587 * g + 0.114 * b) / 255, chroma: Math.max(r, g, b) - Math.min(r, g, b), a };
+    };
+    const isNeutral = (c) => c && c.a > 0.5 && c.chroma < NEUTRAL_CHROMA;
+    const toneElement = (el) => {
+        if (toned.has(el)) return;
+        toned.add(el);
+        if (el instanceof SVGElement || /^(?:IMG|VIDEO|CANVAS|SCRIPT|STYLE|LINK|META)$/.test(el.tagName)) return;
+        const cs = getComputedStyle(el);
+        const fg = parseRgb(cs.color);
+        if (isNeutral(fg) && fg.l < 0.5) el.setAttribute('data-jdml-fg', fg.l < 0.3 ? '1' : '2');
+        const bg = parseRgb(cs.backgroundColor);
+        // Pure white becomes the card colour; light greys become the fill.
+        if (isNeutral(bg) && bg.l > 0.85) el.setAttribute('data-jdml-bg', bg.l > 0.97 ? '1' : '2');
+        for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
+            const bd = parseRgb(cs[`border${side}Color`]);
+            if (parseFloat(cs[`border${side}Width`]) > 0 && isNeutral(bd) && bd.l > 0.7) {
+                el.setAttribute('data-jdml-bd', '');
+                break;
+            }
+        }
+    };
+    function toneTree(root) {
+        if (root === document) root = document.documentElement;
+        if (!DARK.matches || !root || root.nodeType !== 1) return;
+        toneElement(root);
+        for (const el of root.querySelectorAll('*')) toneElement(el);
+    }
+
     function injectStyle(css, marker) {
         if (document.querySelector(`style[${marker}]`)) return;
 
@@ -2525,6 +2578,8 @@
             if (isAppOrPushPrompt(candidate)) removeNode(candidate);
         }
 
+        toneTree(root);
+
         if (IS_NATIVE_SEARCH) {
             for (const ad of collectMatches(root, '.search_prolist_ad')) {
                 const card = ad.closest('.search_prolist_item');
@@ -2599,11 +2654,17 @@
         });
 
         observer.observe(document.documentElement, { childList: true, subtree: true });
+        // Switching the system to dark while a page is open tags it then.
+        DARK.addEventListener('change', () => toneTree(document));
         document.addEventListener('DOMContentLoaded', () => {
+            toned = new WeakSet();
             cleanNativeRoot(document);
             releaseStaleScrollLock();
         }, { once: true });
+        // pageshow fires after load, when every style sheet has applied; read the
+        // dark-mode colours again then.
         window.addEventListener('pageshow', () => {
+            toned = new WeakSet();
             cleanNativeRoot(document);
             releaseStaleScrollLock();
         });

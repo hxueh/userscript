@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Taobao & Tmall Mobile Lite
 // @namespace    https://github.com/hxueh
-// @version      0.1.5
-// @description  A minimal, search-first interface across Taobao and Tmall mobile subdomains with iOS-style item pages and fewer app prompts, overlays, ads, and recommendations.
+// @version      0.2.0
+// @description  A minimal, search-first interface across Taobao and Tmall mobile subdomains with iOS-style item pages in light and dark mode and fewer app prompts, overlays, ads, and recommendations.
 // @author       hxueh
 // @license      MIT
 // @homepageURL  https://github.com/hxueh
@@ -111,6 +111,8 @@
                 --tbml-orange: #ff9500;
                 --tbml-bg: #f2f2f7;
                 --tbml-card: rgba(255, 255, 255, 0.72);
+                /* Solid panel colour for the site's own white boxes in dark mode. */
+                --tbml-surface: #fff;
                 --tbml-fill: rgba(120, 120, 128, 0.12);
                 --tbml-text: #1c1c1e;
                 --tbml-secondary: rgba(60, 60, 67, 0.6);
@@ -532,6 +534,7 @@
                 :root {
                     --tbml-bg: #000;
                     --tbml-card: rgba(44, 44, 46, 0.72);
+                --tbml-surface: #1c1c1e;
                     --tbml-fill: rgba(120, 120, 128, 0.28);
                     --tbml-text: #f5f5f7;
                     --tbml-secondary: rgba(235, 235, 245, 0.6);
@@ -549,11 +552,64 @@
                 }
 
                 html.tbml-detail .tbml-ios-gallery {
-                    background: #1c1c1e !important;
+                    background: var(--tbml-surface) !important;
                 }
+
+                /* Neutral colours the site sets itself, tagged by toneTree().
+                   :where() keeps the specificity at zero, so every rule in this
+                   script that sets a colour still wins over these. */
+                :where([data-tbml-fg="1"]) { color: var(--tbml-text) !important; }
+                :where([data-tbml-fg="2"]) { color: var(--tbml-secondary) !important; }
+                :where([data-tbml-bg="1"]) { background-color: var(--tbml-surface) !important; }
+                :where([data-tbml-bg="2"]) { background-color: var(--tbml-fill) !important; }
+                :where([data-tbml-bd]) { border-color: var(--tbml-border) !important; }
             }
         `;
         (document.head || document.documentElement).appendChild(style);
+    }
+
+    // Dark mode. The CSS recolours what this script styles, but the rest of
+    // the page keeps the site's fixed colours: dark grey text, white panels
+    // and light grey borders, which are unreadable or glaring on black. CSS
+    // cannot select an element by its colour, so in dark mode each element's
+    // computed colours are read once and the neutral ones are tagged; the
+    // dark CSS block maps the tags to the palette. Coloured text and fills
+    // (prices, red labels) have a high chroma and keep their colour.
+    const DARK = matchMedia('(prefers-color-scheme: dark)');
+    const NEUTRAL_CHROMA = 48;
+    // Elements already checked. The late full sweeps reset it, so elements
+    // read before the site's style sheets finished loading are read again.
+    let toned = new WeakSet();
+    const parseRgb = (value) => {
+        const m = value.match(/[\d.]+/g);
+        if (!m || m.length < 3) return null;
+        const [r, g, b, a = 1] = m.map(Number);
+        return { l: (0.299 * r + 0.587 * g + 0.114 * b) / 255, chroma: Math.max(r, g, b) - Math.min(r, g, b), a };
+    };
+    const isNeutral = (c) => c && c.a > 0.5 && c.chroma < NEUTRAL_CHROMA;
+    const toneElement = (el) => {
+        if (toned.has(el)) return;
+        toned.add(el);
+        if (el instanceof SVGElement || /^(?:IMG|VIDEO|CANVAS|SCRIPT|STYLE|LINK|META)$/.test(el.tagName)) return;
+        const cs = getComputedStyle(el);
+        const fg = parseRgb(cs.color);
+        if (isNeutral(fg) && fg.l < 0.5) el.setAttribute('data-tbml-fg', fg.l < 0.3 ? '1' : '2');
+        const bg = parseRgb(cs.backgroundColor);
+        // Pure white becomes the card colour; light greys become the fill.
+        if (isNeutral(bg) && bg.l > 0.85) el.setAttribute('data-tbml-bg', bg.l > 0.97 ? '1' : '2');
+        for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
+            const bd = parseRgb(cs[`border${side}Color`]);
+            if (parseFloat(cs[`border${side}Width`]) > 0 && isNeutral(bd) && bd.l > 0.7) {
+                el.setAttribute('data-tbml-bd', '');
+                break;
+            }
+        }
+    };
+    function toneTree(root) {
+        if (root === document) root = document.documentElement;
+        if (!DARK.matches || !root || root.nodeType !== 1) return;
+        toneElement(root);
+        for (const el of root.querySelectorAll('*')) toneElement(el);
     }
 
     function isTaobaoMobileHost(host = location.hostname.toLowerCase()) {
@@ -1093,6 +1149,7 @@
             removeDetailRecommendations(root);
 
         enhanceDetailPage(root);
+        toneTree(root);
 
         if (removed) unlockAfterRemoval();
     }
@@ -1167,6 +1224,8 @@
 
     function updatePageMode() {
         updateModeClasses();
+        // A new page, or the document just parsed: read the dark-mode colours again.
+        toned = new WeakSet();
 
         if (isHomePage()) {
             if (originalModeRequested()) {
@@ -1213,6 +1272,13 @@
         addStyle();
         document.addEventListener('click', interceptAppLinks, true);
         observeDocument();
+        // Switching the system to dark while a page is open tags it then; after
+        // load every style sheet has applied, so the colours are read again.
+        DARK.addEventListener('change', () => toneTree(document));
+        window.addEventListener('load', () => {
+            toned = new WeakSet();
+            scheduleClean();
+        }, { once: true });
 
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', updatePageMode, { once: true });

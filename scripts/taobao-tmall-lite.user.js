@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Taobao & Tmall Lite
 // @namespace    https://github.com/hxueh
-// @version      0.3.1
-// @description  Strips Taobao and Tmall desktop pages down to search, product images, price, SKU and buy buttons, removes popups, ads, sponsored results and recommendations, and restyles results and item pages in an iOS look that works at phone and desktop width.
+// @version      0.4.0
+// @description  Strips Taobao and Tmall desktop pages down to search, product images, price, SKU and buy buttons, removes popups, ads, sponsored results and recommendations, and restyles results and item pages in an iOS look that works at phone and desktop width and follows the system dark mode.
 // @author       hxueh
 // @license      MIT
 // @homepageURL  https://github.com/hxueh
@@ -41,6 +41,10 @@
 :root {
     --tbl-bg: #f2f2f7;
     --tbl-card: #fff;
+    /* The selected segment of a segmented control, and text on a label-coloured fill. */
+    --tbl-segment: #fff;
+    --tbl-on-label: #fff;
+    --tbl-tint-soft: rgba(255, 80, 0, .1);
     --tbl-label: #000;
     --tbl-label2: rgba(60, 60, 67, .6);
     --tbl-label3: rgba(60, 60, 67, .3);
@@ -53,6 +57,38 @@
     --tbl-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 4px 16px rgba(0, 0, 0, .04);
     --tbl-radius: 20px;
     --tbl-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
+}
+
+/* Dark mode follows the system setting with the iOS dark palette: black page,
+   elevated grey cards, white labels. color-scheme dark also gives form
+   controls and scroll bars their dark look. */
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+        --tbl-bg: #000;
+        --tbl-card: #1c1c1e;
+        --tbl-segment: #636366;
+        --tbl-label: #fff;
+        --tbl-label2: rgba(235, 235, 245, .6);
+        --tbl-label3: rgba(235, 235, 245, .3);
+        --tbl-fill: rgba(118, 118, 128, .24);
+        --tbl-separator: rgba(84, 84, 88, .65);
+        --tbl-tint: #ff6a1f;
+        --tbl-tint-soft: rgba(255, 106, 31, .18);
+        --tbl-price: #ff453a;
+        --tbl-glass: rgba(28, 28, 30, .72);
+        --tbl-glass-edge: rgba(255, 255, 255, .12);
+        --tbl-shadow: none;
+        --tbl-on-label: #000;
+    }
+    /* Neutral colours the site sets itself, tagged by the JS layer (toneTree).
+       :where() keeps the specificity at zero, so every rule in this script
+       that sets a colour still wins over these. */
+    :where([data-tbl-fg="1"]) { color: var(--tbl-label) !important; }
+    :where([data-tbl-fg="2"]) { color: var(--tbl-label2) !important; }
+    :where([data-tbl-bg="1"]) { background-color: var(--tbl-card) !important; }
+    :where([data-tbl-bg="2"]) { background-color: var(--tbl-fill) !important; }
+    :where([data-tbl-bd]) { border-color: var(--tbl-separator) !important; }
 }
 
 /* ---------- Shared frame: footer, toolkit, popups, AI panel ---------- */
@@ -239,7 +275,7 @@ html[data-tbl-page="home"] .tbh-search { width: min(680px, 100%) !important; }
     white-space: nowrap;
 }
 [class*="tabWrap--"] > [class*="actStyle--"] {
-    background: var(--tbl-card); box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 0 0 .5px rgba(0, 0, 0, .04);
+    background: var(--tbl-segment); box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 0 0 .5px rgba(0, 0, 0, .04);
     font-weight: 600 !important;
 }
 [class*="activeLine--"] { display: none !important; }
@@ -260,9 +296,9 @@ html[data-tbl-page="home"] .tbh-search { width: min(680px, 100%) !important; }
 }
 [class*="sortBarWrapper--"] [class*="filterItem--"] * { color: var(--tbl-label) !important; }
 [class*="sortBarWrapper--"] .next-tabs-tab.active .next-tabs-tab-inner {
-    background: var(--tbl-label) !important; color: #fff !important; box-shadow: none !important;
+    background: var(--tbl-label) !important; color: var(--tbl-on-label) !important; box-shadow: none !important;
 }
-[class*="sortBarWrapper--"] .next-tabs-tab.active .next-tabs-tab-inner * { color: #fff !important; }
+[class*="sortBarWrapper--"] .next-tabs-tab.active .next-tabs-tab-inner * { color: var(--tbl-on-label) !important; }
 [class*="divider--"] { display: none !important; }
 
 /* Each card sits in a .tbpc-col wrapper with a percentage width; reset it so
@@ -372,7 +408,7 @@ html:not([data-tbl-ads="show"]) [data-tbl-ad] { display: none !important; }
     box-shadow: 0 0 0 .5px var(--tbl-separator) !important; min-width: 36px; height: 36px !important;
 }
 [class*="pgWrap--"] .next-current, [class*="pgWrap--"] button[class*="current"] {
-    background: var(--tbl-label) !important; color: #fff !important;
+    background: var(--tbl-label) !important; color: var(--tbl-on-label) !important;
 }
 
 /* ---------- Item page ---------- */
@@ -422,7 +458,7 @@ html[data-tbl-page="item"] #right-content-area { position: sticky; top: 12px; }
     min-height: 0 !important;
 }
 [class*="valueItem--"][class*="isSelected--"] {
-    background: rgba(255, 80, 0, .1) !important; box-shadow: inset 0 0 0 1.5px var(--tbl-tint) !important;
+    background: var(--tbl-tint-soft) !important; box-shadow: inset 0 0 0 1.5px var(--tbl-tint) !important;
     color: var(--tbl-tint) !important;
 }
 [class*="valueItem--"] img { border-radius: 8px !important; }
@@ -435,7 +471,7 @@ html[data-tbl-page="item"] #right-content-area { position: sticky; top: 12px; }
     background: var(--tbl-tint) !important; color: #fff !important; box-shadow: none !important;
 }
 [class*="Actions--"] button[class*="leftBtn--"] {
-    background: rgba(255, 80, 0, .12) !important; color: var(--tbl-tint) !important;
+    background: var(--tbl-tint-soft) !important; color: var(--tbl-tint) !important;
 }
 [class*="Actions--"] button[class*="btn--"] span { color: inherit !important; }
 [class*="RightButton--"] { color: var(--tbl-label2) !important; }
@@ -753,6 +789,51 @@ html[data-tbl-page="item"] #right-content-area { position: sticky; top: 12px; }
         }
     };
 
+    // Dark mode. The CSS recolours what this script styles, but the rest of
+    // the page keeps the site's fixed colours: dark grey text, white panels
+    // and light grey borders, which are unreadable or glaring on black. CSS
+    // cannot select an element by its colour, so in dark mode each element's
+    // computed colours are read once and the neutral ones are tagged; the
+    // dark CSS block maps the tags to the palette. Coloured text and fills
+    // (prices, red labels) have a high chroma and keep their colour.
+    const DARK = matchMedia('(prefers-color-scheme: dark)');
+    const NEUTRAL_CHROMA = 48;
+    // Elements already checked. The late full sweeps reset it, so elements
+    // read before the site's style sheets finished loading are read again.
+    let toned = new WeakSet();
+    const parseRgb = (value) => {
+        const m = value.match(/[\d.]+/g);
+        if (!m || m.length < 3) return null;
+        const [r, g, b, a = 1] = m.map(Number);
+        return { l: (0.299 * r + 0.587 * g + 0.114 * b) / 255, chroma: Math.max(r, g, b) - Math.min(r, g, b), a };
+    };
+    const isNeutral = (c) => c && c.a > 0.5 && c.chroma < NEUTRAL_CHROMA;
+    const toneElement = (el) => {
+        if (toned.has(el)) return;
+        toned.add(el);
+        if (el instanceof SVGElement || /^(?:IMG|VIDEO|CANVAS|SCRIPT|STYLE|LINK|META)$/.test(el.tagName)) return;
+        const cs = getComputedStyle(el);
+        const fg = parseRgb(cs.color);
+        if (isNeutral(fg) && fg.l < 0.5) el.setAttribute('data-tbl-fg', fg.l < 0.3 ? '1' : '2');
+        const bg = parseRgb(cs.backgroundColor);
+        // Pure white becomes the card colour; light greys become the fill.
+        if (isNeutral(bg) && bg.l > 0.85) el.setAttribute('data-tbl-bg', bg.l > 0.97 ? '1' : '2');
+        for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
+            const bd = parseRgb(cs[`border${side}Color`]);
+            if (parseFloat(cs[`border${side}Width`]) > 0 && isNeutral(bd) && bd.l > 0.7) {
+                el.setAttribute('data-tbl-bd', '');
+                break;
+            }
+        }
+    };
+    const toneTree = (root) => {
+        if (!DARK.matches || !root || root.nodeType !== 1) return;
+        toneElement(root);
+        for (const el of root.querySelectorAll('*')) toneElement(el);
+    };
+    // Switching the system to dark while a page is open tags it then.
+    DARK.addEventListener('change', () => toneTree(document.body));
+
     // On the home page the search box is the only thing left, so start there.
     const focusSearch = () => {
         if (pageType() !== 'home') return;
@@ -766,6 +847,7 @@ html[data-tbl-page="item"] #right-content-area { position: sticky; top: 12px; }
             if (!root.isConnected) continue;
             cleanLinks(root);
             sweepPromoBlocks(root);
+            toneTree(root);
         }
         // Overlays are direct children of the page shell; checking only those
         // keeps getComputedStyle calls cheap on large result pages.
@@ -805,8 +887,9 @@ html[data-tbl-page="item"] #right-content-area { position: sticky; top: 12px; }
                 }
             }
         }).observe(document.body, { childList: true, subtree: true });
-        // Hydration finishes in stages; sweep again for late-rendered modules.
-        for (const ms of [1200, 3500]) setTimeout(() => sweep(), ms);
+        // Hydration finishes in stages; sweep again for late-rendered modules, and
+        // read the dark-mode colours again now that the style sheets have loaded.
+        for (const ms of [1200, 3500]) setTimeout(() => { toned = new WeakSet(); sweep(); }, ms);
         // Single-page navigation changes the page type without a reload.
         let last = location.href;
         setInterval(() => {
