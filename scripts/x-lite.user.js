@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         X Lite
 // @namespace    https://greasyfork.org/users/36282-hxueh
-// @version      0.5.1
+// @version      0.5.2
 // @description  An iOS 27-inspired X with liquid glass tabs, navigation and tweet cards, mobile dock, manual video playback, no sidebar or Grok, and best-effort analytics blocking.
 // @author       hxueh
 // @license      MIT
+// @icon         data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA2NCA2NCc+PHJlY3Qgd2lkdGg9JzY0JyBoZWlnaHQ9JzY0JyByeD0nMTQnIGZpbGw9JyMwMDAwMDAnLz48dGV4dCB4PSczMicgeT0nNDQnIGZvbnQtZmFtaWx5PSdIZWx2ZXRpY2EsQXJpYWwsc2Fucy1zZXJpZicgZm9udC1zaXplPSczOCcgZm9udC13ZWlnaHQ9JzcwMCcgZmlsbD0nI2ZmZicgdGV4dC1hbmNob3I9J21pZGRsZSc+WDwvdGV4dD48L3N2Zz4=
 // @match        https://x.com/*
 // @match        https://www.x.com/*
 // @match        https://twitter.com/*

@@ -2,10 +2,11 @@
 // @name         JD Mobile Lite
 // @name:zh-CN   京东移动端精简搜索
 // @namespace    https://github.com/hxueh
-// @version      0.1.0
+// @version      0.1.1
 // @description  Restyles JD's mobile web for iOS across home, categories, search, product pages, cart, account, shops, rankings, forms, and dialogs while removing app prompts and overlays.
 // @description:zh-CN 为京东移动网页统一加入 iOS 风格，覆盖首页、分类、搜索、商品详情、购物车、账户、店铺、榜单、表单和弹窗，同时移除 App 跳转提示与干扰遮罩。
 // @author       hxueh
+// @icon         data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA2NCA2NCc+PHJlY3Qgd2lkdGg9JzY0JyBoZWlnaHQ9JzY0JyByeD0nMTQnIGZpbGw9JyNlMTI1MWInLz48dGV4dCB4PSczMicgeT0nNDQnIGZvbnQtZmFtaWx5PSdIZWx2ZXRpY2EsQXJpYWwsc2Fucy1zZXJpZicgZm9udC1zaXplPScyOCcgZm9udC13ZWlnaHQ9JzcwMCcgZmlsbD0nI2ZmZicgdGV4dC1hbmNob3I9J21pZGRsZSc+SkQ8L3RleHQ+PC9zdmc+
 // @match        https://m.jd.com/*
 // @match        https://*.m.jd.com/*
 // @match        https://so.m.jd.com/*

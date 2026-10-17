@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Taobao & Tmall Mobile Lite
 // @namespace    https://github.com/hxueh
-// @version      0.1.4
+// @version      0.1.5
 // @description  A minimal, search-first interface across Taobao and Tmall mobile subdomains with iOS-style item pages and fewer app prompts, overlays, ads, and recommendations.
 // @author       hxueh
 // @license      MIT
 // @homepageURL  https://github.com/hxueh
 // @supportURL   https://github.com/hxueh
+// @icon         data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA2NCA2NCc+PHJlY3Qgd2lkdGg9JzY0JyBoZWlnaHQ9JzY0JyByeD0nMTQnIGZpbGw9JyNmZjUwMDAnLz48dGV4dCB4PSczMicgeT0nNDQnIGZvbnQtZmFtaWx5PSdIZWx2ZXRpY2EsQXJpYWwsc2Fucy1zZXJpZicgZm9udC1zaXplPSczOCcgZm9udC13ZWlnaHQ9JzcwMCcgZmlsbD0nI2ZmZicgdGV4dC1hbmNob3I9J21pZGRsZSc+VDwvdGV4dD48L3N2Zz4=
 // @match        https://m.taobao.com/*
 // @match        https://*.m.taobao.com/*
 // @match        https://m.tmall.com/*

@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Taobao & Tmall Lite
 // @namespace    https://github.com/hxueh
-// @version      0.3.0
+// @version      0.3.1
 // @description  Strips Taobao and Tmall desktop pages down to search, product images, price, SKU and buy buttons, removes popups, ads, sponsored results and recommendations, and restyles results and item pages in an iOS look that works at phone and desktop width.
 // @author       hxueh
 // @license      MIT
 // @homepageURL  https://github.com/hxueh
 // @supportURL   https://github.com/hxueh
+// @icon         data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA2NCA2NCc+PHJlY3Qgd2lkdGg9JzY0JyBoZWlnaHQ9JzY0JyByeD0nMTQnIGZpbGw9JyNmZjUwMDAnLz48dGV4dCB4PSczMicgeT0nNDQnIGZvbnQtZmFtaWx5PSdIZWx2ZXRpY2EsQXJpYWwsc2Fucy1zZXJpZicgZm9udC1zaXplPSczOCcgZm9udC13ZWlnaHQ9JzcwMCcgZmlsbD0nI2ZmZicgdGV4dC1hbmNob3I9J21pZGRsZSc+VDwvdGV4dD48L3N2Zz4=
 // @match        https://*.taobao.com/*
 // @match        https://*.tmall.com/*
 // @match        https://*.tmall.hk/*
