@@ -2,7 +2,7 @@
 // @name         JD Lite
 // @name:zh-CN   京东精简版
 // @namespace    https://github.com/hxueh
-// @version      0.1.1
+// @version      0.2.0
 // @description  Strips JD desktop pages down to search, product images, price, SKU and buy buttons, blocks tracking scripts and beacons, removes popups, side rails, sponsored results and recommendations, and restyles search and item pages in an iOS look that works at phone and desktop width.
 // @description:zh-CN 把京东桌面版精简为搜索、商品图、价格、规格和购买按钮，拦截统计脚本与上报请求，移除弹窗、侧边栏、推广商品和推荐模块，并以 iOS 风格重绘搜索页和商品页，手机和电脑宽度都能正常使用。
 // @author       hxueh
@@ -185,6 +185,9 @@ html, body { overflow-x: clip !important; overflow-y: visible !important; min-he
 }
 
 /* ---------- Top bar: keep sign-in, home, cart, orders, my JD ---------- */
+/* The top bar's dropdowns (my JD, cart) open downwards; lift the bar above
+   the sticky search header so the header does not cover them. */
+#shortcut-2024, #shortcut, .common-banner { position: relative !important; z-index: 1001 !important; }
 .jdmcc-topbar {
     background: transparent !important; border-bottom: 0 !important;
     width: auto !important; min-width: 0 !important; font-size: 13px;
@@ -334,48 +337,58 @@ html[data-jdl-page="search"] #main_search_container_wrap > .header {
     border-radius: 8px; font-size: 14px !important; font-weight: 500 !important; color: var(--jdl-label) !important;
     white-space: nowrap; background: transparent !important;
 }
-[class*="_top-bar-left-tab-item_"]::after, [class*="_top-bar-left-tab-item_"]::before { display: none !important; }
+[class*="_top-bar-left-tab-item_"]::after, [class*="_top-bar-left-tab-item_"]::before,
+[class*="_top-bar-left-tab-active-line_"] { display: none !important; }
 [class*="_top-bar-left-tab-item_"][class*="_top-bar-left-tab-active_"] {
     background: var(--jdl-card) !important; box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 0 0 .5px rgba(0, 0, 0, .04);
     font-weight: 600 !important;
 }
-/* Grid/list view switch and the ad-like banner slot beside the tabs. */
-[class*="_top-bar-right_"] [class*="_switch_"], [class*="_rendWrap_"] { display: none !important; }
-[class*="_top-bar-right_"] { color: var(--jdl-label2) !important; font-size: 13px; }
+/* Delivery address, grid/list switch and the banner slot beside the tabs. */
+[class*="_top-bar-right_"], [class*="_rendWrap_"] { display: none !important; }
 
-/* Brand row, filter bar and sort chips. */
-[class*="_all-filter-row-wrapper_"] {
-    width: auto !important; background: var(--jdl-card) !important; border-radius: 14px;
-    padding: 4px 12px !important; box-sizing: border-box; margin-bottom: 10px;
+/* Sort and filter chips stay; the brand / source-channel row (品牌, 来源渠道),
+   the result count, the "more" menu and dividers go. */
+[class*="_all-filter-row-wrapper_"], [class*="_all-filter-line_"], [class*="_divider_"],
+[class*="_car-home_"], [class*="_box-bar-right_"] { display: none !important; }
+/* One row of chips that scrolls sideways instead of wrapping or clipping. */
+[class*="_box-bar_"], [class*="_box-bar-left_"] {
+    display: flex !important; align-items: center; gap: 6px; flex-wrap: nowrap !important;
+    width: auto !important; height: auto !important; min-width: 0; max-width: 100%;
+    background: transparent !important; border: 0 !important; padding: 0 !important;
 }
-[class*="_all-filter-line_"], [class*="_divider_"], [class*="_car-home_"] { display: none !important; }
-[class*="_box-bar_"] {
-    display: flex !important; align-items: center; gap: 8px; width: auto !important; height: auto !important;
-    background: transparent !important; border: 0 !important;
-}
-[class*="_box-bar-left_"] { display: flex !important; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+[class*="_box-bar-left_"] { overflow-x: auto; scrollbar-width: none; padding: 1px !important; }
+[class*="_box-bar-left_"]::-webkit-scrollbar { display: none; }
 [class*="_sort-bar_"], [class*="_sort-bar-area_"], [class*="_box-bar-middle_"] {
-    display: flex !important; align-items: center; gap: 6px; flex-wrap: wrap; width: auto !important;
+    background: transparent !important;
+    display: flex !important; align-items: center; gap: 6px; flex-wrap: nowrap !important;
+    flex: none !important; width: auto !important; height: auto !important; margin: 0 !important; padding: 0 !important;
 }
-/* Each sort control, price box and filter checkbox gets the same capsule. The
-   sort area wraps its dropdown triggers in fixed-width boxes; those collapse to
-   their content and the trigger itself becomes the capsule. */
-[class*="_sort-bar-area_"] > *, [class*="_price-range_"], [class*="_trigger-item_"], [class*="_trigger-item_"] > * {
-    width: auto !important; height: auto !important; margin: 0 !important; padding: 0 !important;
-    border: 0 !important; background: transparent !important;
+/* Every sort control and filter chip is the same 30px capsule. The site wraps
+   them in boxes of different fixed sizes (a 216px dropdown trigger, a 32px
+   select inside each chip); those collapse to their content. */
+[class*="_sort-bar-area_"] > *, [class*="_price-range_"], [class*="_trigger-item_"], [class*="_trigger-item_"] > *,
+[class*="_box-bar-middle_"] [class*="_filter-select_"] {
+    width: auto !important; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important;
+    border: 0 !important; background: transparent !important; box-shadow: none !important; line-height: inherit !important;
 }
 [class*="_trigger-wrap_"], [class*="_sort-tag-button_"], [class*="_box-bar-middle_"] > .box-bar-item {
-    display: inline-flex !important; align-items: center; gap: 4px;
-    width: auto !important; min-width: 0 !important; margin: 0 !important;
-    padding: 5px 12px !important; height: auto !important; line-height: 18px !important;
+    display: inline-flex !important; align-items: center; justify-content: center; gap: 4px; flex: none !important;
+    width: auto !important; min-width: 0 !important; height: 30px !important; margin: 0 !important;
+    padding: 0 12px !important; line-height: 30px !important;
     border: 0 !important; border-radius: 999px !important;
     background: var(--jdl-card) !important; color: var(--jdl-label) !important;
-    box-shadow: 0 0 0 .5px var(--jdl-separator) !important; font-size: 13px !important;
+    box-shadow: 0 0 0 .5px var(--jdl-separator) !important;
+    font-size: 13px !important; font-weight: 400 !important;
     box-sizing: border-box; white-space: nowrap;
 }
 [class*="_trigger-wrap_"] *, [class*="_sort-tag-button_"] *, [class*="_box-bar-middle_"] > .box-bar-item * {
     border: 0 !important; background-color: transparent !important;
+    font-size: inherit !important; line-height: inherit !important; height: auto !important;
 }
+[class*="_trigger-wrap_"] img, [class*="_sort-tag-button_"] img, .box-bar-item img { max-height: 14px; width: auto; }
+/* Chips that are only a programme logo (国家补贴, 超级补贴, sale banners) are
+   tagged by the JS layer; the rest share one text style. */
+[class*="_box-bar-middle_"] > .box-bar-item * { color: inherit !important; font-weight: inherit !important; }
 /* Empty checkbox items carry only an icon badge (a sale logo), not a filter word. */
 [class*="_box-bar-middle_"] > .box-bar-item:empty { display: none !important; }
 
@@ -427,7 +440,7 @@ html[data-jdl-page="search"] #main_search_container_wrap > .header {
 .plugin_goodsCardWrapper [class*="_tags_"], .plugin_goodsCardWrapper #operation,
 .plugin_goodsCardWrapper [class*="_operation_"], .plugin_goodsCardWrapper [class*="_customer_service_icon_"],
 .plugin_goodsCardWrapper [class*="_link_icon_"], .plugin_goodsCardWrapper [class*="_subsidy_"],
-.plugin_goodsCardWrapper [class*="_ad_"] { display: none !important; }
+.plugin_goodsCardWrapper [class*="_ad_"], .plugin_goodsCardWrapper [class*="_addCart_"] { display: none !important; }
 
 .plugin_goodsCardWrapper [class*="_info_w_"], .plugin_goodsCardWrapper [class*="_info_"] {
     display: flex !important; flex-direction: column; flex: 1 1 auto;
@@ -461,13 +474,9 @@ html[data-jdl-page="search"] #main_search_container_wrap > .header {
     font-size: 13px !important; font-weight: 600 !important; font-style: normal;
 }
 .plugin_goodsCardWrapper [class*="_gray_"] { font-size: 12px !important; color: var(--jdl-label2) !important; }
-.plugin_goodsCardWrapper [class*="_addCart_"] {
-    position: absolute !important; right: 10px; bottom: -2px; margin: 0 !important;
-    width: 28px !important; height: 28px !important; border: 0 !important; border-radius: 50% !important;
-    background-color: var(--jdl-tint-soft) !important;
-}
 .plugin_goodsCardWrapper [class*="_goods_volume_container_"] {
     padding: 4px 12px 0 !important; margin: 0 !important; height: auto !important;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font-size: 12px !important; color: var(--jdl-label2) !important; line-height: 16px !important;
 }
 .plugin_goodsCardWrapper [class*="_goods_volume_container_"] * { font-size: inherit !important; color: inherit !important; }
@@ -482,18 +491,8 @@ html[data-jdl-page="search"] #main_search_container_wrap > .header {
 }
 .plugin_goodsCardWrapper [class*="_name_"] * { font-size: inherit !important; color: inherit !important; }
 
-/* Sponsored cards, tagged by the JS layer, stay hidden unless the toggle shows them. */
-html:not([data-jdl-ads="show"]) [data-jdl-ad] { display: none !important; }
-
-/* Ad toggle row inserted by the JS layer above the grid. */
-#jdl-adbar {
-    display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    margin: 0 0 12px; padding: 0 4px; font-size: 13px; color: var(--jdl-label2);
-}
-#jdl-adbar button {
-    border: 0; border-radius: 999px; padding: 5px 12px; cursor: pointer;
-    background: var(--jdl-fill); color: var(--jdl-tint); font-size: 13px; font-weight: 600;
-}
+/* Sponsored cards, tagged by the JS layer. */
+html body [data-jdl-ad][data-jdl-ad][data-jdl-ad] { display: none !important; }
 
 /* Pager: capsule buttons. */
 [class*="_pagiContainer_"] { width: auto !important; margin: 28px 0 !important; }
@@ -616,7 +615,9 @@ html[data-jdl-page="item"] .page-container { padding-top: 4px; }
 .pc-component-stepper * { border: 0 !important; background: transparent !important; }
 
 /* ---------- Elements tagged by the JS layer ---------- */
-[data-jdl-hidden] { display: none !important; }
+/* Repeated attribute selectors raise specificity above the component rules
+   above, which also use !important on display. */
+html body [data-jdl-hidden][data-jdl-hidden][data-jdl-hidden] { display: none !important; }
 
 /* ---------- Phone and narrow windows ---------- */
 @media (max-width: 900px) {
@@ -636,14 +637,8 @@ html[data-jdl-page="item"] .page-container { padding-top: 4px; }
 
     /* Address, brand row and the result count are not worth the room;
        tabs and chips scroll sideways on one line. */
-    [class*="_top-bar-right_"], [class*="_all-filter-row-wrapper_"], [class*="_box-bar-right_"] { display: none !important; }
-    [class*="_top-bar-left-tab-wrap_"], [class*="_box-bar-left_"], [class*="_box-bar-middle_"] {
-        flex-wrap: nowrap !important; max-width: 100%; overflow-x: auto; scrollbar-width: none;
-    }
-    [class*="_box-bar_"] { display: block !important; }
-    [class*="_box-bar-left_"] > *, [class*="_box-bar-middle_"] > * { flex: none !important; }
-    [class*="_top-bar-left-tab-wrap_"]::-webkit-scrollbar, [class*="_box-bar-left_"]::-webkit-scrollbar,
-    [class*="_box-bar-middle_"]::-webkit-scrollbar { display: none; }
+    [class*="_top-bar-left-tab-wrap_"] { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+    [class*="_top-bar-left-tab-wrap_"]::-webkit-scrollbar { display: none; }
 
     .plugin_goodsContainer { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .plugin_goodsCardWrapper > [class*="_card_"] { border-radius: 16px !important; }
@@ -904,41 +899,21 @@ html[data-jdl-page="item"] .page-container { padding-top: 4px; }
     const isSponsored = (card) =>
         [...card.querySelectorAll('[class*="_ad_"]')].some((el) => el.textContent.trim() === '广告');
 
-    // A one-line bar above the grid tells how many sponsored cards are hidden and
-    // lets the user show them, because on some queries they are a third of the page.
-    const updateAdBar = (grid, count) => {
-        let bar = document.getElementById('jdl-adbar');
-        if (!count) { bar?.remove(); return; }
-        if (!bar) {
-            bar = document.createElement('div');
-            bar.id = 'jdl-adbar';
-            bar.innerHTML = '<span></span><button type="button"></button>';
-            bar.querySelector('button').addEventListener('click', () => {
-                const root = document.documentElement;
-                if (root.dataset.jdlAds === 'show') delete root.dataset.jdlAds;
-                else root.dataset.jdlAds = 'show';
-                updateAdBar(grid, Number(bar.dataset.count));
-            });
-        }
-        // The grid can be re-rendered on pagination; keep the bar right above it.
-        if (bar.nextElementSibling !== grid) grid.before(bar);
-        const shown = document.documentElement.dataset.jdlAds === 'show';
-        bar.dataset.count = count;
-        bar.querySelector('span').textContent = shown ? `正在显示 ${count} 条推广` : `已隐藏 ${count} 条推广`;
-        bar.querySelector('button').textContent = shown ? '隐藏' : '显示';
-    };
-
     const sweepResultGrid = () => {
         if (pageType() !== 'search') return;
         const grid = document.querySelector('.plugin_goodsContainer');
         if (!grid) return;
-        let ads = 0;
         for (const card of grid.querySelectorAll(':scope > .plugin_goodsCardWrapper')) {
-            const sponsored = isSponsored(card);
-            card.toggleAttribute(AD_ATTR, sponsored);
-            if (sponsored) ads++;
+            card.toggleAttribute(AD_ATTR, isSponsored(card));
         }
-        updateAdBar(grid, ads);
+        // Filter chips that carry only a logo image are promotions, not filters.
+        for (const chip of document.querySelectorAll('[class*="_box-bar-middle_"] > .box-bar-item')) {
+            if (!chip.textContent.trim()) hide(chip);
+        }
+        // Scope tabs for business buyers are not shopping scopes for most people.
+        for (const tab of document.querySelectorAll('[class*="_top-bar-left-tab-item_"]')) {
+            if (/^(?:企业采购|工业品)$/.test(tab.textContent.trim())) hide(tab);
+        }
     };
 
     // On the home page the search box is the only thing left, so start there.
@@ -988,8 +963,7 @@ html[data-jdl-page="item"] .page-container { padding-top: 4px; }
         new MutationObserver((records) => {
             for (const rec of records) {
                 for (const n of rec.addedNodes) {
-                    // Our own ad bar would otherwise retrigger a sweep on every update.
-                    if (n.nodeType === 1 && n.id !== 'jdl-adbar') enqueue(n);
+                    if (n.nodeType === 1) enqueue(n);
                 }
             }
         }).observe(document.body, { childList: true, subtree: true });
