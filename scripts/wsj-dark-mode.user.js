@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WSJ Dark Mode
 // @namespace    https://greasyfork.org/users/36282-hxueh
-// @version      0.1.0
+// @version      0.1.1
 // @description  A calm dark mode for The Wall Street Journal that follows the system theme. It covers every page, including menus, paywalls, charts and market tables, without relying on WSJ class names.
 // @author       hxueh
 // @license      MIT
