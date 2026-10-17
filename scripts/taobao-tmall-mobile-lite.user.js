@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Taobao & Tmall Mobile Lite
 // @namespace    https://github.com/hxueh
-// @version      0.0.5
+// @version      0.1.0
 // @description  A minimal, search-first interface across Taobao and Tmall mobile subdomains with iOS-style item pages and fewer app prompts, overlays, ads, and recommendations.
 // @author       hxueh
 // @license      MIT
@@ -107,14 +107,33 @@
         style.id = STYLE_ID;
         style.textContent = `
             :root {
-                --tbml-orange: #ff5000;
-                --tbml-orange-pressed: #e84800;
-                --tbml-bg: #f5f5f7;
-                --tbml-card: rgba(255, 255, 255, 0.92);
-                --tbml-text: #1d1d1f;
-                --tbml-secondary: #6e6e73;
-                --tbml-border: rgba(60, 60, 67, 0.16);
-                --tbml-shadow: 0 16px 50px rgba(0, 0, 0, 0.10);
+                --tbml-tint: #ff5000;
+                --tbml-tint-pressed: #e24600;
+                --tbml-red: #ff3b30;
+                --tbml-orange: #ff9500;
+                --tbml-bg: #f2f2f7;
+                --tbml-card: rgba(255, 255, 255, 0.72);
+                --tbml-fill: rgba(120, 120, 128, 0.12);
+                --tbml-text: #1c1c1e;
+                --tbml-secondary: rgba(60, 60, 67, 0.6);
+                --tbml-border: rgba(60, 60, 67, 0.12);
+                --tbml-glass: rgba(255, 255, 255, 0.64);
+                --tbml-glass-edge: rgba(255, 255, 255, 0.78);
+                --tbml-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+                --tbml-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+            }
+
+            /* Liquid Glass surface shared by the search capsule, top bar and buy bar. */
+            .tbml-glass,
+            html.tbml-detail .tbml-ios-topbar,
+            html.tbml-detail .tbml-ios-buybar {
+                background: var(--tbml-glass) !important;
+                -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+                backdrop-filter: blur(28px) saturate(180%) !important;
+                box-shadow:
+                    inset 0 1px 0 var(--tbml-glass-edge),
+                    inset 0 0 0 0.5px var(--tbml-glass-edge),
+                    var(--tbml-glass-shadow) !important;
             }
 
             html.tbml-home,
@@ -123,7 +142,7 @@
                 margin: 0 !important;
                 background: var(--tbml-bg) !important;
                 color: var(--tbml-text) !important;
-                font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif !important;
+                font-family: var(--tbml-font) !important;
                 overflow: auto !important;
                 overscroll-behavior: none;
                 -webkit-text-size-adjust: 100%;
@@ -146,7 +165,8 @@
                 display: grid;
                 place-items: center;
                 background:
-                    radial-gradient(circle at 50% 8%, rgba(255, 80, 0, 0.12), transparent 34%),
+                    radial-gradient(60% 42% at 18% 6%, rgba(255, 149, 0, 0.20), transparent 70%),
+                    radial-gradient(56% 40% at 86% 14%, rgba(255, 59, 48, 0.16), transparent 70%),
                     var(--tbml-bg);
             }
 
@@ -157,16 +177,16 @@
             }
 
             .tbml-brand {
-                margin: 0 0 22px;
+                margin: 0 0 26px;
                 text-align: center;
             }
 
             .tbml-brand-title {
                 margin: 0;
-                font-size: clamp(32px, 10vw, 48px);
-                font-weight: 800;
-                letter-spacing: -0.05em;
-                line-height: 1;
+                font-size: clamp(34px, 11vw, 52px);
+                font-weight: 700;
+                letter-spacing: -0.04em;
+                line-height: 1.05;
             }
 
             .tbml-brand-subtitle {
@@ -176,33 +196,40 @@
                 line-height: 1.4;
             }
 
-            .tbml-card {
+            .tbml-search-form {
                 box-sizing: border-box;
-                padding: 16px;
-                border: 1px solid var(--tbml-border);
-                border-radius: 24px;
-                background: var(--tbml-card);
-                box-shadow: var(--tbml-shadow);
-                -webkit-backdrop-filter: blur(24px) saturate(160%);
-                backdrop-filter: blur(24px) saturate(160%);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                min-height: 60px;
+                padding: 6px 6px 6px 18px;
+                border-radius: 999px;
             }
 
-            .tbml-search-form {
-                display: grid;
-                grid-template-columns: minmax(0, 1fr) auto;
-                gap: 10px;
+            .tbml-search-form:focus-within {
+                box-shadow:
+                    inset 0 1px 0 var(--tbml-glass-edge),
+                    0 0 0 3px rgba(255, 80, 0, 0.28),
+                    var(--tbml-glass-shadow);
+            }
+
+            .tbml-search-glyph {
+                flex: none;
+                width: 20px;
+                height: 20px;
+                color: var(--tbml-secondary);
             }
 
             .tbml-search-input {
                 box-sizing: border-box;
+                flex: 1;
                 width: 100%;
                 min-width: 0;
-                min-height: 52px;
-                padding: 0 16px;
-                border: 1px solid var(--tbml-border);
-                border-radius: 16px;
+                min-height: 46px;
+                padding: 0;
+                border: 0;
                 outline: none;
-                background: rgba(118, 118, 128, 0.10);
+                background: transparent;
                 color: var(--tbml-text);
                 font: inherit;
                 font-size: 17px;
@@ -210,64 +237,77 @@
                 appearance: none;
             }
 
-            .tbml-search-input:focus {
-                border-color: rgba(255, 80, 0, 0.55);
-                box-shadow: 0 0 0 4px rgba(255, 80, 0, 0.12);
+            .tbml-search-input::placeholder {
+                color: var(--tbml-secondary);
             }
 
             .tbml-search-button {
-                min-width: 76px;
-                min-height: 52px;
-                padding: 0 18px;
+                flex: none;
+                min-width: 72px;
+                min-height: 46px;
+                padding: 0 20px;
                 border: 0;
-                border-radius: 16px;
-                background: var(--tbml-orange);
+                border-radius: 999px;
+                background: var(--tbml-tint);
                 color: #fff;
                 font: inherit;
                 font-size: 16px;
-                font-weight: 700;
+                font-weight: 600;
                 -webkit-appearance: none;
                 appearance: none;
                 touch-action: manipulation;
+                transition: transform 0.18s cubic-bezier(0.32, 0.72, 0, 1), background 0.18s;
             }
 
             .tbml-search-button:active {
-                background: var(--tbml-orange-pressed);
-                transform: scale(0.98);
+                background: var(--tbml-tint-pressed);
+                transform: scale(0.95);
             }
 
             .tbml-links {
                 display: grid;
                 grid-template-columns: repeat(3, minmax(0, 1fr));
                 gap: 10px;
-                margin-top: 12px;
+                margin-top: 14px;
             }
 
             .tbml-link {
                 box-sizing: border-box;
-                min-height: 48px;
-                padding: 0 8px;
-                display: grid;
-                place-items: center;
-                border: 1px solid var(--tbml-border);
-                border-radius: 15px;
-                background: rgba(255, 255, 255, 0.72);
+                min-height: 76px;
+                padding: 12px 6px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                border-radius: 22px;
+                background: var(--tbml-glass);
+                -webkit-backdrop-filter: blur(24px) saturate(170%);
+                backdrop-filter: blur(24px) saturate(170%);
+                box-shadow: inset 0 1px 0 var(--tbml-glass-edge), 0 4px 18px rgba(0, 0, 0, 0.06);
                 color: var(--tbml-text);
                 text-align: center;
                 text-decoration: none;
-                font-size: 14px;
-                font-weight: 600;
+                font-size: 13px;
+                font-weight: 500;
                 touch-action: manipulation;
+                transition: transform 0.18s cubic-bezier(0.32, 0.72, 0, 1), background 0.18s;
+            }
+
+            .tbml-link svg {
+                width: 24px;
+                height: 24px;
+                color: var(--tbml-tint);
             }
 
             .tbml-link:active {
-                background: rgba(118, 118, 128, 0.12);
-                transform: scale(0.98);
+                background: var(--tbml-fill);
+                transform: scale(0.96);
             }
 
             .tbml-original-link {
                 width: fit-content;
-                margin: 18px auto 0;
+                margin: 22px auto 0;
                 display: block;
                 color: var(--tbml-secondary);
                 text-decoration: none;
@@ -279,16 +319,12 @@
                 right: max(14px, env(safe-area-inset-right));
                 bottom: max(18px, env(safe-area-inset-bottom));
                 z-index: 2147483647;
-                min-height: 42px;
-                padding: 0 15px;
-                border: 1px solid rgba(255, 255, 255, 0.40);
+                min-height: 44px;
+                padding: 0 18px;
+                border: 0;
                 border-radius: 999px;
-                background: rgba(29, 29, 31, 0.84);
-                color: #fff;
-                box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
-                -webkit-backdrop-filter: blur(18px) saturate(160%);
-                backdrop-filter: blur(18px) saturate(160%);
-                font: 600 14px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+                color: var(--tbml-text);
+                font: 600 14px/1 var(--tbml-font);
                 touch-action: manipulation;
             }
 
@@ -307,16 +343,14 @@
             html.tbml-detail,
             html.tbml-detail body {
                 color: var(--tbml-text) !important;
-                font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif !important;
+                font-family: var(--tbml-font) !important;
                 -webkit-text-size-adjust: 100%;
             }
 
             html.tbml-detail body {
                 box-sizing: border-box;
-                padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important;
-                background:
-                    radial-gradient(circle at 50% -80px, rgba(255, 80, 0, 0.09), transparent 320px),
-                    var(--tbml-bg) !important;
+                /* Room for the floating buy bar so the last row is never covered. */
+                padding-bottom: calc(104px + env(safe-area-inset-bottom)) !important;
             }
 
             html.tbml-detail *,
@@ -327,7 +361,7 @@
 
             html.tbml-detail .tbml-ios-gallery {
                 overflow: hidden !important;
-                border-radius: 0 0 24px 24px !important;
+                border-radius: 0 0 28px 28px !important;
                 background: #fff !important;
                 box-shadow: 0 10px 34px rgba(0, 0, 0, 0.08) !important;
                 isolation: isolate;
@@ -340,13 +374,14 @@
                 max-width: 100%;
             }
 
+            /* Grouped, inset cards like Settings: continuous corners and a hairline edge. */
             html.tbml-detail .tbml-ios-card {
                 box-sizing: border-box !important;
-                margin: 12px max(10px, env(safe-area-inset-left)) !important;
-                border: 1px solid var(--tbml-border) !important;
-                border-radius: 18px !important;
+                margin: 12px max(12px, env(safe-area-inset-left)) !important;
+                border: 0 !important;
+                border-radius: 22px !important;
                 background: var(--tbml-card) !important;
-                box-shadow: 0 3px 18px rgba(0, 0, 0, 0.055) !important;
+                box-shadow: inset 0 0 0 0.5px var(--tbml-border), 0 2px 14px rgba(0, 0, 0, 0.04) !important;
                 -webkit-backdrop-filter: blur(24px) saturate(150%);
                 backdrop-filter: blur(24px) saturate(150%);
                 overflow: hidden;
@@ -355,17 +390,28 @@
             html.tbml-detail .tbml-ios-row {
                 box-sizing: border-box !important;
                 min-height: 48px;
-                padding: 12px 14px !important;
-                border: 1px solid var(--tbml-border) !important;
-                border-radius: 14px !important;
-                background: rgba(255, 255, 255, 0.66) !important;
+                margin: 8px max(12px, env(safe-area-inset-left)) !important;
+                padding: 12px 16px !important;
+                border: 0 !important;
+                border-radius: 18px !important;
+                background: var(--tbml-card) !important;
+                box-shadow: inset 0 0 0 0.5px var(--tbml-border) !important;
+            }
+
+            /* A row inside a card becomes a flat list cell separated by a hairline. */
+            html.tbml-detail .tbml-ios-card .tbml-ios-row {
+                margin: 0 !important;
+                border-radius: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                border-top: 0.5px solid var(--tbml-border) !important;
             }
 
             html.tbml-detail .tbml-ios-price {
-                color: #ff3b30 !important;
-                font-size: clamp(24px, 7vw, 32px) !important;
-                font-weight: 800 !important;
-                letter-spacing: -0.035em !important;
+                color: var(--tbml-red) !important;
+                font-size: clamp(26px, 7.4vw, 34px) !important;
+                font-weight: 700 !important;
+                letter-spacing: -0.03em !important;
                 line-height: 1.12 !important;
                 font-variant-numeric: tabular-nums;
             }
@@ -373,84 +419,105 @@
             html.tbml-detail .tbml-ios-title {
                 color: var(--tbml-text) !important;
                 font-size: 17px !important;
-                font-weight: 650 !important;
-                letter-spacing: -0.015em !important;
-                line-height: 1.42 !important;
+                font-weight: 600 !important;
+                letter-spacing: -0.01em !important;
+                line-height: 1.4 !important;
             }
 
             html.tbml-detail .tbml-ios-topbar {
                 box-sizing: border-box !important;
                 top: 0 !important;
-                min-height: calc(44px + env(safe-area-inset-top)) !important;
+                min-height: calc(48px + env(safe-area-inset-top)) !important;
                 padding-top: env(safe-area-inset-top) !important;
-                border-bottom: 1px solid var(--tbml-border) !important;
-                background: rgba(245, 245, 247, 0.78) !important;
-                box-shadow: 0 1px 0 rgba(255, 255, 255, 0.35) inset !important;
-                -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-                backdrop-filter: blur(24px) saturate(180%) !important;
+                border-bottom: 0.5px solid var(--tbml-border) !important;
             }
 
             html.tbml-detail .tbml-ios-topbar a,
             html.tbml-detail .tbml-ios-topbar button,
             html.tbml-detail .tbml-ios-topbar [role="button"] {
                 border-radius: 999px !important;
-                -webkit-tap-highlight-color: transparent;
             }
 
+            /* Floating glass capsule that hovers above the home indicator. */
             html.tbml-detail .tbml-ios-buybar {
                 box-sizing: border-box !important;
-                left: 0 !important;
-                right: 0 !important;
-                bottom: 0 !important;
-                width: 100% !important;
-                min-height: calc(68px + env(safe-area-inset-bottom)) !important;
-                padding: 8px max(10px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)) !important;
-                border-top: 1px solid var(--tbml-border) !important;
-                border-radius: 22px 22px 0 0 !important;
-                background: rgba(255, 255, 255, 0.86) !important;
-                box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.10) !important;
-                -webkit-backdrop-filter: blur(26px) saturate(180%) !important;
-                backdrop-filter: blur(26px) saturate(180%) !important;
+                left: max(12px, env(safe-area-inset-left)) !important;
+                right: max(12px, env(safe-area-inset-right)) !important;
+                bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+                width: auto !important;
+                min-height: 64px !important;
+                padding: 8px 8px 8px 10px !important;
+                border: 0 !important;
+                border-radius: 32px !important;
                 z-index: 2147483000 !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 6px !important;
             }
 
             html.tbml-detail .tbml-ios-buybar a,
             html.tbml-detail .tbml-ios-buybar button,
             html.tbml-detail .tbml-ios-buybar [role="button"] {
                 box-sizing: border-box;
-                min-height: 44px;
-                border-radius: 15px !important;
+                min-height: 48px;
                 font-family: inherit !important;
-                font-weight: 700 !important;
                 touch-action: manipulation;
+                transition: transform 0.18s cubic-bezier(0.32, 0.72, 0, 1), filter 0.18s;
+            }
+
+            html.tbml-detail .tbml-ios-action-primary,
+            html.tbml-detail .tbml-ios-action-secondary {
+                flex: 1 1 0 !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                margin: 0 !important;
+                padding: 0 8px !important;
+                border: 0 !important;
+                border-radius: 999px !important;
+                color: #fff !important;
+                font-size: 15px !important;
+                font-weight: 600 !important;
+                white-space: nowrap !important;
             }
 
             html.tbml-detail .tbml-ios-action-primary {
-                border: 0 !important;
-                background: #ff3b30 !important;
-                color: #fff !important;
-                box-shadow: 0 5px 16px rgba(255, 59, 48, 0.24) !important;
+                background: var(--tbml-red) !important;
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 4px 14px rgba(255, 59, 48, 0.30) !important;
             }
 
             html.tbml-detail .tbml-ios-action-secondary {
-                border: 0 !important;
-                background: #ff9500 !important;
-                color: #fff !important;
-                box-shadow: 0 5px 16px rgba(255, 149, 0, 0.22) !important;
+                background: var(--tbml-orange) !important;
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 4px 14px rgba(255, 149, 0, 0.28) !important;
             }
 
+            /* Icon actions behave like tab-bar items: stacked glyph and label, no fill. */
             html.tbml-detail .tbml-ios-action-icon {
-                min-width: 42px !important;
-                background: rgba(118, 118, 128, 0.10) !important;
-                color: var(--tbml-text) !important;
+                flex: none !important;
+                min-width: 40px !important;
+                display: inline-flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 2px !important;
+                margin: 0 !important;
+                padding: 0 2px !important;
+                border: 0 !important;
+                border-radius: 14px !important;
+                white-space: nowrap !important;
+                background: transparent !important;
                 box-shadow: none !important;
+                color: var(--tbml-text) !important;
+                font-size: 11px !important;
+                font-weight: 500 !important;
+                line-height: 1.2 !important;
             }
 
             html.tbml-detail .tbml-ios-action-primary:active,
             html.tbml-detail .tbml-ios-action-secondary:active,
             html.tbml-detail .tbml-ios-action-icon:active {
-                filter: brightness(0.94);
-                transform: scale(0.98);
+                filter: brightness(0.92);
+                transform: scale(0.95);
             }
 
             ${DIRECT_REMOVE_SELECTORS.join(',\n')} {
@@ -462,39 +529,25 @@
             @media (prefers-color-scheme: dark) {
                 :root {
                     --tbml-bg: #000;
-                    --tbml-card: rgba(28, 28, 30, 0.90);
+                    --tbml-card: rgba(44, 44, 46, 0.72);
+                    --tbml-fill: rgba(120, 120, 128, 0.28);
                     --tbml-text: #f5f5f7;
-                    --tbml-secondary: #a1a1a6;
+                    --tbml-secondary: rgba(235, 235, 245, 0.6);
                     --tbml-border: rgba(255, 255, 255, 0.14);
-                    --tbml-shadow: 0 18px 55px rgba(0, 0, 0, 0.46);
+                    --tbml-glass: rgba(44, 44, 46, 0.58);
+                    --tbml-glass-edge: rgba(255, 255, 255, 0.16);
+                    --tbml-glass-shadow: 0 10px 36px rgba(0, 0, 0, 0.5);
                 }
 
-                .tbml-search-input {
-                    background: rgba(118, 118, 128, 0.24);
-                }
-
-                .tbml-link {
-                    background: rgba(44, 44, 46, 0.78);
+                #${ROOT_ID} {
+                    background:
+                        radial-gradient(60% 42% at 18% 6%, rgba(255, 149, 0, 0.16), transparent 70%),
+                        radial-gradient(56% 40% at 86% 14%, rgba(255, 59, 48, 0.14), transparent 70%),
+                        var(--tbml-bg);
                 }
 
                 html.tbml-detail .tbml-ios-gallery {
                     background: #1c1c1e !important;
-                }
-
-                html.tbml-detail .tbml-ios-row {
-                    background: rgba(44, 44, 46, 0.72) !important;
-                }
-
-                html.tbml-detail .tbml-ios-topbar {
-                    background: rgba(18, 18, 20, 0.80) !important;
-                }
-
-                html.tbml-detail .tbml-ios-buybar {
-                    background: rgba(28, 28, 30, 0.88) !important;
-                }
-
-                html.tbml-detail .tbml-ios-action-icon {
-                    background: rgba(118, 118, 128, 0.24) !important;
                 }
             }
         `;
@@ -598,8 +651,9 @@
                     <p class="tbml-brand-subtitle">${escapeHtml(site.subtitle)}</p>
                 </header>
 
-                <div class="tbml-card">
-                    <form class="tbml-search-form" action="${escapeHtml(site.searchAction)}" method="get" role="search">
+                <div>
+                    <form class="tbml-search-form tbml-glass" action="${escapeHtml(site.searchAction)}" method="get" role="search">
+                        <svg class="tbml-search-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
                         <input
                             class="tbml-search-input"
                             type="search"
@@ -615,9 +669,18 @@
                     </form>
 
                     <nav class="tbml-links" aria-label="快捷入口">
-                        <a class="tbml-link" href="https://main.m.taobao.com/cart/index.html">购物车</a>
-                        <a class="tbml-link" href="https://tm.m.taobao.com/list.htm?OrderListType=total_orders">订单</a>
-                        <a class="tbml-link" href="https://h5.m.taobao.com/mlapp/mytaobao.html">我的淘宝</a>
+                        <a class="tbml-link" href="https://main.m.taobao.com/cart/index.html">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2.5l2 11h10l2-8H7"/><circle cx="9" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></svg>
+                            购物车
+                        </a>
+                        <a class="tbml-link" href="https://tm.m.taobao.com/list.htm?OrderListType=total_orders">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 7v10l8 4 8-4V7z"/><path d="m4 7 8 4 8-4M12 11v10"/></svg>
+                            订单
+                        </a>
+                        <a class="tbml-link" href="https://h5.m.taobao.com/mlapp/mytaobao.html">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>
+                            我的淘宝
+                        </a>
                     </nav>
                 </div>
 
@@ -636,6 +699,7 @@
 
         const button = document.createElement('button');
         button.id = 'tbml-enable-button';
+        button.className = 'tbml-glass';
         button.type = 'button';
         button.textContent = '精简首页';
         button.addEventListener('click', () => {
@@ -879,6 +943,18 @@
         let prices = 0;
         let titles = 0;
 
+        // Walk in document order, but let the innermost match win: a wrapper such as
+        // `.price-box` is marked first, then handed over to its inner `.price` below.
+        // Otherwise both would be styled and the price would be scaled twice.
+        const claim = (element, cls) => {
+            const outer = element.parentElement?.closest(`.${cls}`);
+            if (outer) {
+                outer.classList.remove(cls);
+                return cls === 'tbml-ios-price' ? --prices : --titles;
+            }
+            return null;
+        };
+
         for (const element of queryElements(root, 'h1, h2, h3, p, span, div, [class*="price" i], [class*="title" i]', 1500)) {
             if (element.closest('.tbml-ios-topbar, .tbml-ios-buybar')) continue;
             const text = normalizedText(element);
@@ -888,6 +964,7 @@
             const marker = elementMarker(element);
 
             if (prices < 5 && (/^(?:¥|￥)\s*[\d,.]+/.test(text) || (/price/.test(marker) && /\d/.test(text) && text.length < 48))) {
+                claim(element, 'tbml-ios-price');
                 element.classList.add('tbml-ios-price');
                 prices += 1;
                 changed = true;
@@ -896,6 +973,7 @@
 
             const titleCandidate = /(?:^|[-_])title(?:$|[-_])|itemtitle|main-title|goods-title/.test(marker) || /^(?:H1|H2)$/.test(element.tagName);
             if (titles < 3 && titleCandidate && text.length >= 6 && text.length <= 160 && !DETAIL_ROW_TEXT.test(text)) {
+                claim(element, 'tbml-ios-title');
                 element.classList.add('tbml-ios-title');
                 titles += 1;
                 changed = true;
@@ -1007,10 +1085,14 @@
     function scheduleClean() {
         if (cleanupScheduled) return;
         cleanupScheduled = true;
-        requestAnimationFrame(() => {
-            cleanupScheduled = false;
-            clean(document);
-        });
+        // Detail-page styling scans well over a thousand nodes with getComputedStyle, so a
+        // short delay lets bursts of mutations collapse into one pass.
+        window.setTimeout(() => {
+            requestAnimationFrame(() => {
+                cleanupScheduled = false;
+                clean(document);
+            });
+        }, 120);
     }
 
     function webFallbackFromAppUrl(rawUrl) {
