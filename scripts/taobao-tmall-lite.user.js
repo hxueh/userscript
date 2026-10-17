@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Taobao & Tmall Lite
 // @namespace    https://github.com/hxueh
-// @version      0.2.0
+// @version      0.2.1
 // @description  Strips Taobao and Tmall desktop pages down to search, product images, price, SKU and buy buttons, removes popups, ads and recommendations with CSS and JS, and stays usable at phone width.
 // @author       hxueh
 // @license      MIT
@@ -16,6 +16,8 @@
 // @exclude      https://*.m.tmall.com/*
 // @exclude      https://login.taobao.com/*
 // @exclude      https://login.tmall.com/*
+// @exclude      https://buy.taobao.com/*
+// @exclude      https://buy.tmall.com/*
 // @exclude      https://*.alipay.com/*
 // @run-at       document-start
 // @grant        none
@@ -48,7 +50,8 @@ html, body {
     background: #fff !important;
     min-width: 0 !important;
 }
-html, body { overflow-x: hidden; }
+/* clip, unlike hidden, does not create a scroll container, so sticky bars keep working. */
+html, body { overflow-x: clip; }
 
 /* Fixed-width page containers become fluid with a readable maximum. */
 .tbpc-layout, [class*="contentWrapAdapt--"], [class*="innerWrap--"][class*="headerBox"],
@@ -65,7 +68,7 @@ html, body { overflow-x: hidden; }
 /* ---------- Top nav: keep login, home, orders, my Taobao, cart ---------- */
 #J_SiteNav { background: #fff !important; border-bottom: 1px solid #eee; }
 #J_SiteNavBdL > li:not(#J_SiteNavLogin),
-#J_SiteNavBdR > li:not(#J_SiteNavHome):not(#J_SiteNavBought):not(#J_SiteNavMytaobao):not(#J_SiteNavMiniCart):not(.mini-cart),
+#J_SiteNavBdR > li:not(#J_SiteNavHome):not(#J_SiteNavBought):not(#J_SiteNavMytaobao):not(#J_MiniCart):not(.mini-cart),
 #J_SiteNavRegionList, #J_SiteNavMobile, #J_SiteNavEnterprise, #J_SiteNavFavor,
 #J_SiteNavOpenShop, #J_SiteNavSeller, #J_SiteNavService {
     display: none !important;
@@ -98,9 +101,8 @@ html, body { overflow-x: hidden; }
     width: auto !important; max-width: none !important; flex: none !important;
     padding: 0 !important; margin: 0 !important; min-width: 0; display: block;
 }
-/* Sponsored cards go through click.simba.taobao.com; real results do not.
-   The "suggest" and survey cards are not products either. */
-#content_wrapper > [class*="tbpc-row"] > *:has(> a[href*="click.simba.taobao.com"]),
+/* "Suggested search" cards are not products. Sponsored cards stay: on a typical
+   results page they are most of the grid, and hiding them leaves a handful of items. */
 #content_wrapper > [class*="tbpc-row"] > *:has([class*="suggestItemCard--"]) { display: none !important; }
 
 /* Responsive grid instead of the fixed 5-column flex row. */
@@ -132,7 +134,7 @@ html, body { overflow-x: hidden; }
 
 /* ---------- Item page ---------- */
 #apple-header, [class*="headerArea--"] { display: none !important; }
-[class*="keyInfo--"] { gap: 24px; }
+[class*="keyInfo--"] { gap: 24px; padding-top: 16px; box-sizing: border-box; }
 [class*="leftWrap--"][class*="mRcLbO7l"], [class*="rightWrap--"][class*="YeyCQ2XA"] { min-width: 0; }
 [class*="mainPicWrap--"] img, [class*="picGallery--"] img { max-width: 100%; height: auto; }
 
@@ -189,14 +191,18 @@ html, body { overflow-x: hidden; }
 }
 `;
 
-    // Desktop pages ship without a viewport tag, so a phone would render them at
-    // 980px and the media query above would never fire.
+    // Desktop pages either ship no viewport tag or a fixed one ("width=1200"), so a
+    // phone would lay them out at desktop width and the media queries above would
+    // never fire. Set our own, replacing whatever is there.
+    const VIEWPORT = 'width=device-width, initial-scale=1';
     const ensureViewport = () => {
-        if (document.querySelector('meta[name="viewport"]')) return;
-        const meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, initial-scale=1';
-        (document.head || document.documentElement).appendChild(meta);
+        let meta = document.querySelector('meta[name="viewport"]');
+        if (!meta) {
+            meta = document.createElement('meta');
+            meta.name = 'viewport';
+            (document.head || document.documentElement).appendChild(meta);
+        }
+        if (meta.content !== VIEWPORT) meta.content = VIEWPORT;
     };
 
     const injectStyle = () => {
@@ -251,6 +257,9 @@ html, body { overflow-x: hidden; }
     const PROMO_HEADING = /^(?:猜你喜欢|为你推荐|为您推荐|相似(?:宝贝|商品)|看了又看|店铺推荐|热销推荐|搭配推荐|大家都在(?:看|买|搜)|你可能还喜欢|品牌甄选|广告|AD|下载.{0,6}(?:App|APP|客户端)|扫码.{0,8}(?:手机|淘宝|天猫))$/;
     // Floating layers that must stay: login, captcha and slide verification.
     const KEEP_OVERLAY = /登录|注册|验证|滑块|安全|baxia|nc_|J_Member|login/i;
+    // Form controls and labels that mark the part of a page people came for.
+    const CONTROLS = 'input, textarea, select, form';
+    const REAL_CONTENT = /立即购买|加入购物车|结算|提交订单|合计|全选/;
     const AD_HOST = /click\.simba\.taobao\.com|simba\.taobao\.com|tanx\.com|alimama\.com/i;
 
     const pageType = () => {
@@ -328,12 +337,31 @@ html, body { overflow-x: hidden; }
             let block = h;
             while (block.parentElement && block.parentElement !== main && block.parentElement !== document.body) {
                 const parent = block.parentElement;
-                if (parent.children.length > 6 || parent.contains(document.querySelector('form'))) break;
+                // A parent that adds a form control or a purchase/checkout label holds
+                // real page content too (the cart list, the SKU panel); stop below it.
+                if (parent.children.length > 6) break;
+                if (parent.querySelectorAll(CONTROLS).length > block.querySelectorAll(CONTROLS).length) break;
+                if (REAL_CONTENT.test(parent.textContent) && !REAL_CONTENT.test(block.textContent)) break;
                 block = parent;
             }
             if (block === main || block === document.body) continue;
-            if (/立即购买|加入购物车|搜索/.test(block.textContent) && block.querySelector('button, input')) continue;
+            if (block.querySelector(CONTROLS) && REAL_CONTENT.test(block.textContent)) continue;
+            // Never hide something that covers most of the page.
+            if (block.offsetHeight > window.innerHeight * 1.5 && block.offsetWidth > window.innerWidth * 0.9) continue;
             hide(block);
+        }
+    };
+
+    // Result cards that are not products: the "was this search helpful" survey and
+    // similar prompts have no product link and no price.
+    const NON_PRODUCT_CARD = /对本次搜索体验满意吗|搜索体验|意见反馈/;
+    const sweepResultGrid = () => {
+        if (pageType() !== 'search') return;
+        const grid = document.querySelector('#content_wrapper > [class*="tbpc-row"]');
+        if (!grid) return;
+        for (const col of grid.children) {
+            if (col.hasAttribute(HIDE_ATTR)) continue;
+            if (NON_PRODUCT_CARD.test(col.textContent) && !col.querySelector('a[href*="item"], a[href*="detail"], a[href*="click.simba"]')) hide(col);
         }
     };
 
@@ -372,6 +400,7 @@ html, body { overflow-x: hidden; }
         const shell = [...document.body.children, ...(document.querySelector('#tbpc-pop-slot')?.children || [])];
         sweepOverlays(shell);
         if (pageType() === 'item') tagBuyBar();
+        sweepResultGrid();
     };
 
     // Added nodes are batched and swept once per animation frame burst.
@@ -398,7 +427,7 @@ html, body { overflow-x: hidden; }
         focusSearch();
         new MutationObserver((records) => {
             for (const rec of records) {
-                for (const n of rec.addedNodes) if (n.nodeType === 1 && !n.id?.startsWith('claude-')) enqueue(n);
+                for (const n of rec.addedNodes) if (n.nodeType === 1) enqueue(n);
             }
         }).observe(document.body, { childList: true, subtree: true });
         // Hydration finishes in stages; sweep again for late-rendered modules.
