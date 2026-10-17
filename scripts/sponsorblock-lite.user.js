@@ -10,7 +10,7 @@
 // @name:es      SponsorBlock Lite - Saltar patrocinadores YouTube/Bilibili
 // @name:it      SponsorBlock Lite - Salta sponsor YouTube/Bilibili
 // @namespace    https://github.com/hxueh
-// @version      1.1.2
+// @version      1.2.0
 // @description  Auto-skip sponsor segments on YouTube and Bilibili using SponsorBlock API
 // @description:en Auto-skip sponsor segments on YouTube and Bilibili using SponsorBlock API
 // @description:zh-CN 基于 SponsorBlock API 自动跳过 YouTube 和 Bilibili 视频中的赞助片段
@@ -89,12 +89,17 @@
     let videoObserver = null;
     let rafSkipId = null; // For requestAnimationFrame-based skipping
     let lastVideoSrc = null; // Track video element replacement
+    let videoFindInterval = null; // Poll that waits for the <video> of the current page
+    let videoObserverTimer = null; // Pending debounced check from the MutationObserver
 
     // Platform detection
     const IS_MUSIC_YOUTUBE = window.location.hostname === "music.youtube.com";
     const IS_MOBILE_YOUTUBE = window.location.hostname === "m.youtube.com";
 
-    // Vinegar detection - now a function that's called when needed
+    // Vinegar detection. The flag is recomputed on every call instead of
+    // latching on. A latched flag would lock the whole session into Vinegar
+    // mode after one transient page state, such as a <video> that exists
+    // before YouTube's player is mounted. Bilibili is never Vinegar.
     let IS_VINEGAR = false;
 
     function updateVinegarDetection() {
@@ -102,11 +107,11 @@
         const hasYouTubePlayer = document.querySelector("#movie_player, ytm-player, #player") !== null;
         const hasYouTubeProgressBar = document.querySelector(".ytp-progress-bar, .progress-bar-line") !== null;
         // Vinegar: video exists but no YouTube player components
-        const detected = hasVideo && !hasYouTubePlayer && !hasYouTubeProgressBar;
+        const detected = !IS_BILIBILI && hasVideo && !hasYouTubePlayer && !hasYouTubeProgressBar;
 
-        if (detected && !IS_VINEGAR) {
-            IS_VINEGAR = true;
-            log("Vinegar/native video mode detected");
+        if (detected !== IS_VINEGAR) {
+            IS_VINEGAR = detected;
+            log(detected ? "Vinegar/native video mode detected" : "Vinegar/native video mode cleared");
         }
 
         return IS_VINEGAR;
@@ -250,23 +255,13 @@
     }
 
     function getBilibiliVideoID() {
-        const url = window.location.href;
-        const patterns = [
-            /\/video\/([^/?#]+)/,
-            /\/BV([^/?#]+)/,
-            /bvid=([^&]+)/,
-        ];
-        for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match) {
-                let videoId = match[1];
-                if (!videoId.startsWith("BV")) {
-                    videoId = "BV" + videoId;
-                }
-                return videoId;
-            }
-        }
-        return null;
+        // Only BV IDs are accepted. A legacy av ID has no BV form here, and
+        // prefixing it with "BV" would produce an ID that does not exist.
+        // A BV ID is "BV" plus 10 alphanumeric characters. The path and query
+        // are searched, not the hash, so a fragment cannot match.
+        const source = window.location.pathname + window.location.search;
+        const match = source.match(/BV[0-9A-Za-z]{10}/);
+        return match ? match[0] : null;
     }
 
     function getVideoID() {
@@ -301,9 +296,18 @@
         return video?.duration || 0;
     }
 
+    // Platform tag for log prefixes, e.g. "[SB Lite Bilibili]". Used by both
+    // log helpers so the platform check lives in one place.
+    function platformTag() {
+        if (IS_BILIBILI) return " Bilibili";
+        if (IS_VINEGAR) return " Vinegar";
+        if (IS_MOBILE_YOUTUBE) return " Mobile";
+        return "";
+    }
+
     function log(message, ...args) {
         console.log(
-            `[SB Lite${IS_BILIBILI ? " Bilibili" : IS_VINEGAR ? " Vinegar" : IS_MOBILE_YOUTUBE ? " Mobile" : ""}]`,
+            `[SB Lite${platformTag()}]`,
             message,
             ...args,
         );
@@ -311,7 +315,7 @@
 
     function logError(message, ...args) {
         console.error(
-            `[SB Lite${IS_BILIBILI ? " Bilibili" : IS_VINEGAR ? " Vinegar" : IS_MOBILE_YOUTUBE ? " Mobile" : ""}]`,
+            `[SB Lite${platformTag()}]`,
             message,
             ...args,
         );
@@ -745,109 +749,113 @@
 
     // ==================== VIDEO LISTENERS ====================
 
-    function setupVideoListeners() {
-        if (!video) return;
-
-        // Re-check Vinegar detection now that we have a video
-        updateVinegarDetection();
-
-        const videoId = video.getAttribute("data-sb-lite-initialized");
-        const currentSrc = video.currentSrc || video.src;
-
-        // Check if this is a new video or if the source changed
-        if (videoId === currentVideoID && lastVideoSrc === currentSrc) return;
-
-        video.setAttribute("data-sb-lite-initialized", currentVideoID);
-        lastVideoSrc = currentSrc;
-
-        log("Setting up video listeners" + (IS_VINEGAR ? " (Vinegar mode)" : ""));
-
-        // Remove any existing listeners by cloning (for Vinegar video replacement scenario)
-        // We'll use named functions and track them instead
-
-        const onPlay = () => {
+    // Handlers are defined once, at module level, and bound by name. This lets
+    // the script remove exactly the listeners it added when the <video> element
+    // is replaced. The old code added anonymous closures on every setup and never
+    // removed them. Each handler reads the current `video` with optional chaining,
+    // because it can still fire after the element has been detached.
+    const videoHandlers = {
+        play: () => {
             log("Video play event");
             scheduleSkips();
-        };
-
-        const onPlaying = () => {
+        },
+        playing: () => {
             log("Video playing event");
             scheduleSkips();
-        };
-
-        const onSeeked = () => {
+        },
+        seeked: () => {
             log("Video seeked event");
             lastSkippedUUID = null;
             currentSegmentIndex = 0;
-            if (!video.paused) {
+            if (video && !video.paused) {
                 scheduleSkips();
             }
-        };
-
-        const onRateChange = () => {
+        },
+        ratechange: () => {
             scheduleSkips();
-        };
-
-        const onPause = () => {
+        },
+        pause: () => {
             log("Video pause event");
             if (skipScheduleTimer) {
                 clearTimeout(skipScheduleTimer);
                 skipScheduleTimer = null;
             }
             stopRAFSkipLoop();
-        };
-
-        const onDurationChange = () => {
+        },
+        durationchange: () => {
             if (segments.length > 0) {
                 updatePreviewBar();
             }
-        };
-
-        const onLoadedMetadata = () => {
+        },
+        loadedmetadata: () => {
             log("Video loadedmetadata event");
             if (segments.length > 0) {
                 updatePreviewBar();
             }
-        };
-
-        video.addEventListener("play", onPlay);
-        video.addEventListener("playing", onPlaying);
-        video.addEventListener("seeked", onSeeked);
-        video.addEventListener("ratechange", onRateChange);
-        video.addEventListener("pause", onPause);
-        video.addEventListener("durationchange", onDurationChange);
-        video.addEventListener("loadedmetadata", onLoadedMetadata);
-
-        // For Vinegar/iOS: also listen to timeupdate as backup
-        // (RAF loop is primary, but timeupdate helps when app is backgrounded)
-        if (IS_VINEGAR || IS_MOBILE_YOUTUBE) {
-            const onTimeUpdate = () => {
-                if (!video.paused && skippableSegments.length > 0) {
-                    const currentTime = video.currentTime;
-                    for (const seg of skippableSegments) {
-                        const [startTime, endTime] = seg.segment;
-                        if (
-                            currentTime >= startTime &&
-                            currentTime < endTime - SKIP_BUFFER &&
-                            lastSkippedUUID !== seg.UUID
-                        ) {
-                            lastSkippedUUID = seg.UUID;
-                            log(`Skipping ${seg.category} segment (timeupdate backup)`);
-                            skipToTime(endTime);
-                            break;
-                        }
+        },
+        // Backup skip path for Vinegar and mobile. The RAF loop is primary, but
+        // timeupdate still fires when the app is backgrounded. The start check
+        // uses SKIP_BUFFER like the other paths, so a segment is not missed by
+        // a few milliseconds.
+        timeupdate: () => {
+            if (!(IS_VINEGAR || IS_MOBILE_YOUTUBE)) return;
+            if (video && !video.paused && skippableSegments.length > 0) {
+                const currentTime = video.currentTime;
+                for (const seg of skippableSegments) {
+                    const [startTime, endTime] = seg.segment;
+                    if (
+                        currentTime >= startTime - SKIP_BUFFER &&
+                        currentTime < endTime - SKIP_BUFFER &&
+                        lastSkippedUUID !== seg.UUID
+                    ) {
+                        lastSkippedUUID = seg.UUID;
+                        log(`Skipping ${seg.category} segment (timeupdate backup)`);
+                        skipToTime(endTime);
+                        break;
                     }
                 }
-            };
-            video.addEventListener("timeupdate", onTimeUpdate);
+            }
+        },
+    };
+
+    // The element the handlers are attached to. Kept so they can be removed.
+    let boundVideo = null;
+
+    function detachVideoListeners() {
+        if (!boundVideo) return;
+        for (const [type, handler] of Object.entries(videoHandlers)) {
+            boundVideo.removeEventListener(type, handler);
+        }
+        boundVideo = null;
+    }
+
+    function setupVideoListeners() {
+        if (!video) return;
+
+        // Re-check Vinegar detection now that we have a video
+        updateVinegarDetection();
+
+        // Move the handlers when the element changes. The old element is
+        // detached first, so it keeps no stale listeners.
+        if (boundVideo !== video) {
+            detachVideoListeners();
+            for (const [type, handler] of Object.entries(videoHandlers)) {
+                video.addEventListener(type, handler);
+            }
+            boundVideo = video;
         }
 
-        // For Vinegar: Monitor for video element replacement
-        if (IS_VINEGAR) {
-            // Also start skip loop immediately if video is already playing
-            if (!video.paused && skippableSegments.length > 0) {
-                startRAFSkipLoop();
-            }
+        // The log line and the Vinegar loop start run once per source. Same-source
+        // calls return here, so the RAF loop is not started twice.
+        const currentSrc = video.currentSrc || video.src;
+        if (lastVideoSrc === currentSrc) return;
+        lastVideoSrc = currentSrc;
+
+        log("Setting up video listeners" + (IS_VINEGAR ? " (Vinegar mode)" : ""));
+
+        // Vinegar: start the skip loop now if the video is already playing
+        if (IS_VINEGAR && !video.paused && skippableSegments.length > 0) {
+            startRAFSkipLoop();
         }
     }
 
@@ -861,19 +869,10 @@
             return video;
         }
 
-        // For Vinegar (or when YouTube player is replaced), just find any video element
-        const anyVideo = document.querySelector("video");
-        if (anyVideo) {
-            // Check if this looks like a Vinegar setup (no YouTube player elements)
-            const hasYouTubePlayer = document.querySelector("#movie_player, ytm-player") !== null;
-            if (!hasYouTubePlayer) {
-                if (!IS_VINEGAR) {
-                    IS_VINEGAR = true;
-                    log("Vinegar/native video detected");
-                }
-                video = anyVideo;
-                return video;
-            }
+        // Vinegar: no YouTube player chrome, so use whichever video element exists
+        if (updateVinegarDetection()) {
+            video = document.querySelector("video");
+            return video;
         }
 
         // Desktop selectors
@@ -903,33 +902,44 @@
 
     // ==================== MUTATION OBSERVER FOR VIDEO ====================
 
+    function checkVideoElement() {
+        // Check if video element was added or replaced
+        const currentVideo = document.querySelector("video");
+
+        if (currentVideo && currentVideo !== video) {
+            log("Video element change detected via observer");
+            video = currentVideo;
+
+            // Re-check Vinegar status
+            updateVinegarDetection();
+
+            if (currentVideoID) {
+                setupVideoListeners();
+                if (segments.length > 0 && !video.paused) {
+                    scheduleSkips();
+                }
+            }
+        } else if (!currentVideo && video) {
+            log("Video element removed");
+            video = null;
+            stopRAFSkipLoop();
+        }
+    }
+
     function setupVideoObserver() {
         if (videoObserver) {
             videoObserver.disconnect();
         }
 
-        videoObserver = new MutationObserver((mutations) => {
-            // Check if video element was added or replaced
-            const currentVideo = document.querySelector("video");
-
-            if (currentVideo && currentVideo !== video) {
-                log("Video element change detected via observer");
-                video = currentVideo;
-
-                // Re-check Vinegar status
-                updateVinegarDetection();
-
-                if (currentVideoID) {
-                    setupVideoListeners();
-                    if (segments.length > 0 && !video.paused) {
-                        scheduleSkips();
-                    }
-                }
-            } else if (!currentVideo && video) {
-                log("Video element removed");
-                video = null;
-                stopRAFSkipLoop();
-            }
+        // YouTube mutates the DOM constantly. Without a debounce, every batch of
+        // mutations ran a full document query. Now a burst of mutations schedules
+        // one check, 250 ms later.
+        videoObserver = new MutationObserver(() => {
+            if (videoObserverTimer) return;
+            videoObserverTimer = setTimeout(() => {
+                videoObserverTimer = null;
+                checkVideoElement();
+            }, 250);
         });
 
         videoObserver.observe(document.body, {
@@ -956,15 +966,28 @@
 
         stopRAFSkipLoop();
 
+        // Stop the poll for the previous page. Otherwise a fast A -> B -> C
+        // navigation leaves one poll per step, and each one loads segments.
+        if (videoFindInterval) {
+            clearInterval(videoFindInterval);
+            videoFindInterval = null;
+        }
+
         hideCategoryPill();
         removePreviewBar();
     }
 
-    async function loadSegmentsAndSetup() {
-        if (!currentVideoID) return;
+    async function loadSegmentsAndSetup(videoID) {
+        if (!videoID) return;
 
         try {
-            segments = await fetchSegments(currentVideoID);
+            const fetched = await fetchSegments(videoID);
+
+            // The user may have navigated away while the request was in flight.
+            // Drop the stale result so one video's segments never apply to another.
+            if (videoID !== currentVideoID) return;
+
+            segments = fetched;
 
             if (segments.length > 0) {
                 log(`Found ${segments.length} segments for video ${currentVideoID}`);
@@ -1004,18 +1027,21 @@
         let attempts = 0;
         const maxAttempts = 50;
 
-        const checkVideo = setInterval(() => {
+        // resetState() above has already cleared any earlier poll, so only one runs.
+        videoFindInterval = setInterval(() => {
             attempts++;
 
             // Re-check Vinegar detection on each attempt
             updateVinegarDetection();
 
             if (findVideoElement()) {
-                clearInterval(checkVideo);
+                clearInterval(videoFindInterval);
+                videoFindInterval = null;
                 log("Video element found after", attempts, "attempts");
-                loadSegmentsAndSetup();
+                loadSegmentsAndSetup(newVideoID);
             } else if (attempts >= maxAttempts) {
-                clearInterval(checkVideo);
+                clearInterval(videoFindInterval);
+                videoFindInterval = null;
                 logError("Failed to find video element after max attempts");
             }
         }, 100);
