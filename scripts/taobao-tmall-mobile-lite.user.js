@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Taobao & Tmall Mobile Lite
 // @namespace    https://github.com/hxueh
-// @version      0.1.0
+// @version      0.1.1
 // @description  A minimal, search-first interface across Taobao and Tmall mobile subdomains with iOS-style item pages and fewer app prompts, overlays, ads, and recommendations.
 // @author       hxueh
 // @license      MIT
@@ -38,9 +38,13 @@
     const APP_PROMPT_TEXT = /(?:打开|下载|唤起|启动|前往).{0,8}(?:淘宝|天猫).{0,8}(?:app|客户端)|(?:淘宝|天猫).{0,8}(?:app|客户端).{0,8}(?:打开|下载|查看)|app\s*内打开|立即打开\s*app/i;
     const PROMO_TEXT = /红包|签到|新人礼|新人专享|领券中心|活动弹窗|限时福利|惊喜礼包/i;
     const LOGIN_OR_SECURITY_TEXT = /登录|注册|验证码|滑块|安全验证|隐私政策|用户协议/i;
-    const DETAIL_PURCHASE_TEXT = /加入购物车|立即购买|去购买|领券购买|马上抢|单独购买|发起拼单|结算/i;
+    const DETAIL_PURCHASE_TEXT = /加入购物车|立即购买|去购买|领券购买|马上抢|单独购买|发起拼单|结算|仅支持在客户端购买/i;
     const DETAIL_PRIMARY_ACTION_TEXT = /立即购买|去购买|领券购买|马上抢|单独购买|发起拼单/i;
     const DETAIL_SECONDARY_ACTION_TEXT = /加入购物车/i;
+    // Shown instead of the buy button on items that can only be bought in the app.
+    const DETAIL_NOTICE_ACTION_TEXT = /仅支持在客户端购买/;
+    // Buttons and links that only push the visitor into the app. Matched on a whole text node.
+    const APP_ENTRY_TEXT = /^(?:打开手机淘宝查看(?:更多图文详情|全部|更多)?|打开(?:手机)?(?:淘宝|天猫)(?:app)?|去(?:淘宝|天猫)(?:app)?查看更多)\s*[>›»]?$/i;
     const DETAIL_ICON_ACTION_TEXT = /^(?:客服|店铺|购物车|收藏|分享)$/;
     const DETAIL_ROW_TEXT = /^(?:已选|选择|规格|发货|配送|运费|送至|服务|保障|参数|优惠|促销|活动|数量|尺码|颜色|版本|套餐)/;
 
@@ -99,6 +103,7 @@
     let observer;
     let cleanupScheduled = false;
     let lastUrl = location.href;
+    let contentDetail = false;
 
     function addStyle() {
         if (document.getElementById(STYLE_ID)) return;
@@ -491,6 +496,28 @@
                 box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 4px 14px rgba(255, 149, 0, 0.28) !important;
             }
 
+            /* App-only items: keep the explanation but make it read as a disabled control. */
+            html.tbml-detail .tbml-ios-action-notice {
+                flex: 1 1 0 !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                margin: 0 !important;
+                padding: 0 12px !important;
+                border: 0 !important;
+                border-radius: 999px !important;
+                background: var(--tbml-fill) !important;
+                color: var(--tbml-secondary) !important;
+                font-size: 14px !important;
+                font-weight: 600 !important;
+                white-space: nowrap !important;
+                box-shadow: none !important;
+            }
+
+            .tbml-hidden {
+                display: none !important;
+            }
+
             /* Icon actions behave like tab-bar items: stacked glyph and label, no fill. */
             html.tbml-detail .tbml-ios-action-icon {
                 flex: none !important;
@@ -591,7 +618,8 @@
     function isDetailPage() {
         const host = location.hostname.toLowerCase();
         const path = location.pathname.toLowerCase();
-        return host === 'item.taobao.com' ||
+        return contentDetail ||
+            host === 'item.taobao.com' ||
             host === 'detail.m.tmall.com' ||
             host === 'detail.tmall.com' ||
             host.endsWith('.detail.tmall.com') ||
@@ -869,14 +897,15 @@
     }
 
     function styleDetailBuyBar(root = document) {
-        const candidates = queryElements(
-            root,
-            'footer, nav, [class*="bottom" i], [class*="footer" i], [class*="action" i], [class*="buy" i], [style*="position: fixed" i], [style*="position: sticky" i]',
-            420
-        );
+        // Class names on the mobile pages are hashed, so match structurally: any block that
+        // holds a purchase label and is pinned to (or sits at) the bottom of the screen.
+        const candidates = queryElements(root, 'footer, nav, section, div', 2000);
 
         let changed = false;
         for (const element of candidates) {
+            // textContent is cheap; innerText forces layout, so only ask for it after this.
+            if (!DETAIL_PURCHASE_TEXT.test(element.textContent || '')) continue;
+            if (element.closest('.tbml-ios-buybar')) continue;
             const text = normalizedText(element);
             if (!DETAIL_PURCHASE_TEXT.test(text)) continue;
             const visual = visibleElementRect(element);
@@ -894,7 +923,11 @@
                 const labelText = normalizedText(label);
                 if (!labelText || labelText.length > 18) continue;
                 const action = clickableForLabel(label, element);
-                if (DETAIL_SECONDARY_ACTION_TEXT.test(labelText)) {
+                // A wrapper and its inner label both carry the text; style only the outer one.
+                if (action.parentElement?.closest('[class*="tbml-ios-action-"]')) continue;
+                if (DETAIL_NOTICE_ACTION_TEXT.test(labelText)) {
+                    action.classList.add('tbml-ios-action-notice');
+                } else if (DETAIL_SECONDARY_ACTION_TEXT.test(labelText)) {
                     action.classList.add('tbml-ios-action-secondary');
                 } else if (DETAIL_PRIMARY_ACTION_TEXT.test(labelText)) {
                     action.classList.add('tbml-ios-action-primary');
@@ -1069,11 +1102,64 @@
         }, 30);
     }
 
+    // Detects item pages by what they show. The check runs on mobile hosts only and stops once
+    // it succeeds, so reading textContent (cheaper than innerText: no layout) stays rare.
+    function detectDetailByContent() {
+        if (contentDetail || !document.body) return false;
+        const host = location.hostname.toLowerCase();
+        if (!isTaobaoMobileHost(host) && !isTmallMobileHost(host)) return false;
+        if (isHomePage() || isSearchPage()) return false;
+
+        const text = document.body.textContent || '';
+        if (!/加入购物车|仅支持在客户端购买|领券购买|立即购买/.test(text)) return false;
+        if (!/店铺|进店|评价|宝贝详情|商品详情/.test(text)) return false;
+
+        contentDetail = true;
+        updateModeClasses();
+        return true;
+    }
+
+    // Hides whole-text "open the app" entry points. Hiding (not removing) keeps the site's
+    // framework from tripping over a node it still expects to own.
+    function hideAppEntryPoints(root = document) {
+        if (isHomePage() && !originalModeRequested()) return false;
+        const scope = root.body || root;
+        if (!scope) return false;
+
+        const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+        const hits = [];
+        for (let node = walker.nextNode(); node && hits.length < 40; node = walker.nextNode()) {
+            const value = node.nodeValue?.trim();
+            if (!value || value.length > 24 || !APP_ENTRY_TEXT.test(value)) continue;
+            hits.push(node.parentElement);
+        }
+
+        let changed = false;
+        for (let element of hits) {
+            if (!element || element.closest(`#${ROOT_ID}`)) continue;
+            // Climb to the outermost wrapper that holds nothing but this prompt, so the
+            // empty button shell disappears with its label.
+            const label = normalizedText(element);
+            for (let i = 0; i < 4 && element.parentElement; i += 1) {
+                const parent = element.parentElement;
+                if (parent === document.body || normalizedText(parent) !== label) break;
+                element = parent;
+            }
+            if (element.classList.contains('tbml-hidden')) continue;
+            element.classList.add('tbml-hidden');
+            changed = true;
+        }
+        return changed;
+    }
+
     function clean(root = document) {
         if (isHomePage() && !originalModeRequested()) return;
 
+        detectDetailByContent();
+
         const removed = removeDirectMatches(root) |
             removeTextMatchedOverlays(root) |
+            hideAppEntryPoints(root) |
             removeNonessentialBottomNav(root) |
             removeDetailRecommendations(root);
 
@@ -1144,10 +1230,14 @@
         if (fallback) location.href = fallback;
     }
 
-    function updatePageMode() {
+    function updateModeClasses() {
         document.documentElement.classList.toggle('tbml-search', isSearchPage());
         document.documentElement.classList.toggle('tbml-detail', isDetailPage());
         document.body?.classList.toggle('tbml-ios-detail-body', isDetailPage());
+    }
+
+    function updatePageMode() {
+        updateModeClasses();
 
         if (isHomePage()) {
             if (originalModeRequested()) {
@@ -1206,6 +1296,7 @@
         window.setInterval(() => {
             if (location.href === lastUrl) return;
             lastUrl = location.href;
+            contentDetail = false;
             updatePageMode();
         }, 700);
     }
