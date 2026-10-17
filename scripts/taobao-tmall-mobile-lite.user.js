@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Taobao & Tmall Mobile Lite
 // @namespace    https://github.com/hxueh
-// @version      0.1.2
+// @version      0.1.3
 // @description  A minimal, search-first interface across Taobao and Tmall mobile subdomains with iOS-style item pages and fewer app prompts, overlays, ads, and recommendations.
 // @author       hxueh
 // @license      MIT
@@ -479,6 +479,21 @@
                 font-weight: 600 !important;
                 white-space: nowrap !important;
                 box-shadow: none !important;
+            }
+
+            /* The label often sits in an inner box that carries the site's own fill, width and
+               corners. Flatten those so only the pill we styled is drawn, not two shapes. */
+            html.tbml-detail .tbml-ios-action-primary *,
+            html.tbml-detail .tbml-ios-action-secondary *,
+            html.tbml-detail .tbml-ios-action-notice * {
+                width: auto !important;
+                min-width: 0 !important;
+                margin: 0 !important;
+                border: 0 !important;
+                border-radius: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                color: inherit !important;
             }
 
             .tbml-hidden {
