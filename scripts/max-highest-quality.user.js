@@ -2,7 +2,7 @@
 // @name         Max: Always Highest Video Quality
 // @name:zh-CN   Max：始终使用最高画质
 // @namespace    https://github.com/hxueh
-// @version      0.1.0
+// @version      0.1.1
 // @description  Makes Max (HBO Max) stream at the highest resolution the title offers by trimming each tier of the DASH manifest to its top rung, so adaptive bitrate cannot fall back to 234p–480p.
 // @description:zh-CN 将 DASH 清单中每个档位裁剪到最高一档，让 Max（HBO Max）始终以设备可用的最高分辨率播放，自适应码率无法降到 234p–480p。
 // @author       hxueh
@@ -41,6 +41,10 @@
     return !!rep && (rep.getAttribute("mimeType") || "").startsWith("video");
   };
 
+  // Everything the script does is logged here so a problem on a device I
+  // cannot test (Safari, Windows L1) can be diagnosed from the console alone.
+  const log = (...args) => console.log("[max-hq]", ...args);
+
   const heightOf = (rep) => Number(rep.getAttribute("height")) || 0;
 
   // Returns the rewritten MPD text, or the original text if there is nothing
@@ -53,6 +57,7 @@
       if (!root || root.localName !== "MPD") return text;
 
       let changed = false;
+      const summary = [];
       for (const period of root.getElementsByTagNameNS(XML_NS, "Period")) {
         // Max splits the ladder over several AdaptationSets, one per
         // resolution tier, each with its own DRM key (SD / 720p / 1080p).
@@ -64,6 +69,7 @@
         for (const set of [...period.getElementsByTagNameNS(XML_NS, "AdaptationSet")].filter(isVideoSet)) {
           const reps = [...set.getElementsByTagNameNS(XML_NS, "Representation")];
           const top = Math.max(0, ...reps.map(heightOf));
+          summary.push(`${reps.map(heightOf).sort((a, b) => a - b).join("/")}p -> ${top}p`);
           for (const rep of reps) {
             // Representations without a height are left alone.
             if (heightOf(rep) && heightOf(rep) < top) {
@@ -73,8 +79,10 @@
           }
         }
       }
+      log(changed ? "manifest trimmed, video tiers:" : "manifest left unchanged, video tiers:", summary);
       return changed ? new XMLSerializer().serializeToString(doc) : text;
-    } catch (_) {
+    } catch (e) {
+      log("manifest rewrite failed, using the original", e);
       return text;
     }
   }
@@ -113,4 +121,38 @@
     }
     return nativeOpen.call(this, method, url, ...rest);
   };
+
+  // The resolution the player is actually showing. "resize" does not bubble,
+  // so it is caught in the capture phase on the document.
+  document.addEventListener(
+    "resize",
+    (e) => {
+      const v = e.target;
+      if (v instanceof HTMLVideoElement && v.videoWidth) log(`playing ${v.videoWidth}x${v.videoHeight}`);
+    },
+    true
+  );
+
+  // Which DRM level the browser offers decides the highest tier Max licenses:
+  // anything but hardware-secure Widevine/FairPlay is capped at SD.
+  (async () => {
+    if (!navigator.requestMediaKeySystemAccess) return;
+    const probe = async (system, robustness) => {
+      try {
+        await navigator.requestMediaKeySystemAccess(system, [
+          {
+            initDataTypes: ["cenc"],
+            videoCapabilities: [{ contentType: 'video/mp4;codecs="avc1.640029"', robustness }],
+          },
+        ]);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    };
+    const widevineL1 = await probe("com.widevine.alpha", "HW_SECURE_ALL");
+    const widevineL3 = await probe("com.widevine.alpha", "SW_SECURE_CRYPTO");
+    const fairplay = await probe("com.apple.fps", "");
+    log("DRM support:", { widevineL1, widevineL3, fairplay });
+  })();
 })();
