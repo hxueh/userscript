@@ -22,6 +22,7 @@ Updates arrive through the manager's normal update check.
 | Xiaohongshu Lite | Phone-style web with a tab bar, Recommend-only feed, full-screen image viewer | [600561](https://greasyfork.org/en/scripts/600561) |
 | Douban Mobile Lite | Full-page interface for m.douban.com with search, broadcasts, books, films and groups | [600461](https://greasyfork.org/en/scripts/600461) |
 | JD Mobile Lite | iOS styling for JD's mobile web, minus app prompts and overlays | [589941](https://greasyfork.org/en/scripts/589941) |
+| JD Lite | Desktop JD reduced to search, product, SKU and buy buttons, without tracking, ads or AI features; responsive down to phone width | [600734](https://greasyfork.org/en/scripts/600734) |
 | Taobao & Tmall Mobile Lite | Search-first mobile interface with fewer prompts, ads and recommendations | [589946](https://greasyfork.org/en/scripts/589946) |
 | Taobao & Tmall Lite | Desktop Taobao and Tmall reduced to search, product, SKU and buy buttons; responsive down to phone width | [600695](https://greasyfork.org/en/scripts/600695) |
 | Max: Always Highest Video Quality | Pins Max (HBO Max) to the top rung of each quality tier so adaptive bitrate never drops to 234p | [600723](https://greasyfork.org/en/scripts/600723) |
