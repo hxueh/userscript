@@ -23,6 +23,7 @@ Updates arrive through the manager's normal update check.
 | Douban Mobile Lite | Full-page interface for m.douban.com with search, broadcasts, books, films and groups | [600461](https://greasyfork.org/en/scripts/600461) |
 | JD Mobile Lite | iOS styling for JD's mobile web, minus app prompts and overlays | [589941](https://greasyfork.org/en/scripts/589941) |
 | Taobao & Tmall Mobile Lite | Search-first mobile interface with fewer prompts, ads and recommendations | [589946](https://greasyfork.org/en/scripts/589946) |
+| Taobao & Tmall Lite | Desktop Taobao and Tmall reduced to search, product, SKU and buy buttons; responsive down to phone width | _pending_ |
 
 Source files live in `scripts/`, one per script, named `<name>.user.js`.
 
