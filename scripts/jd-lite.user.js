@@ -2,7 +2,7 @@
 // @name         JD Lite
 // @name:zh-CN   京东精简版
 // @namespace    https://github.com/hxueh
-// @version      0.1.0
+// @version      0.1.1
 // @description  Strips JD desktop pages down to search, product images, price, SKU and buy buttons, blocks tracking scripts and beacons, removes popups, side rails, sponsored results and recommendations, and restyles search and item pages in an iOS look that works at phone and desktop width.
 // @description:zh-CN 把京东桌面版精简为搜索、商品图、价格、规格和购买按钮，拦截统计脚本与上报请求，移除弹窗、侧边栏、推广商品和推荐模块，并以 iOS 风格重绘搜索页和商品页，手机和电脑宽度都能正常使用。
 // @author       hxueh
@@ -29,16 +29,18 @@
     // patching the page's own fetch, XHR, sendBeacon and script loading takes
     // effect for every caller.
     //
-    // Only pure analytics are blocked. JD's risk-control and login scripts
-    // (pc-risk, js_security, gias pc-tk, jra jsTk, gatherInfo, passport, sso)
-    // stay, because without them the site shows slider verification or
-    // refuses add-to-cart and checkout. cactus.jd.com/request_algo stays too:
-    // it serves the algorithm that signs every api.m.jd.com call.
+    // Only analytics that JD's risk control does not read are blocked. Its
+    // own scripts (pc-risk, js_security, gias pc-tk, jra jsTk, gatherInfo,
+    // passport, sso) stay, and so do two feeds it scores sessions with:
+    // wl.js, which sets the visitor-ID cookies, and cactus.jd.com, which
+    // signs api.m.jd.com calls and receives the mouse and keyboard behaviour
+    // report. With those blocked, the server answers the first interaction
+    // with risk code 605 and the page is replaced by "当前页面异常" or a
+    // forced sign-in.
     // ---------------------------------------------------------------------
     const BLOCKED_URL = new RegExp([
-        // Page-view and click logging.
-        '//wl\\.jd\\.com/', '//mercury\\.jd\\.com/', '//uranus\\.jd\\.com/', '//knicks\\.jd\\.com/',
-        '//cactus\\.jd\\.com/behavior_report', '//h5speed\\.m\\.jd\\.com/',
+        // Page-view and click log pixels, and page-speed beacons.
+        '//mercury\\.jd\\.com/', '//uranus\\.jd\\.com/', '//knicks\\.jd\\.com/', '//h5speed\\.m\\.jd\\.com/',
         // Performance and error monitoring SDKs.
         '/dra/probe-web/', '/ws-js/[^/]+/web-monitor', '//sgm-static\\.jd\\.com/', '//sgm-m\\.jd\\.com/',
         // Third-party analytics.
@@ -238,8 +240,7 @@ button.jd_pc_search_bar_react_search_btn {
 
 /* ---------- Home: logo + search box only, centered ---------- */
 html[data-jdl-page="home"] #J_app, html[data-jdl-page="home"] .fs, html[data-jdl-page="home"] #J_enjoyTop,
-html[data-jdl-page="home"] #pageTabWrap, html[data-jdl-page="home"] .logo_subtit,
-html[data-jdl-page="home"] .logo_tit { display: none !important; }
+html[data-jdl-page="home"] #pageTabWrap, html[data-jdl-page="home"] .logo_subtit { display: none !important; }
 html[data-jdl-page="home"] #header { height: auto !important; margin-top: 16vh; background: transparent !important; }
 html[data-jdl-page="home"] #header > .w {
     display: flex !important; flex-direction: column; align-items: center; gap: 28px;
@@ -248,7 +249,20 @@ html[data-jdl-page="home"] #header > .w {
 html[data-jdl-page="home"] #header > .w > * {
     position: static !important; float: none !important; margin: 0 !important;
 }
-/* The logo picture is in logo_extend; logo_tit only holds hidden link text. */
+/* The logo picture is in logo_extend, which a script fills after load and
+   sometimes leaves empty. Until it has an image, the hidden "京东" link text
+   in logo_tit is shown as a word mark instead. */
+html[data-jdl-page="home"] #logo:has(.logo_extend img) .logo_tit,
+html[data-jdl-page="home"] #logo:not(:has(.logo_extend img)) .logo_extend { display: none !important; }
+html[data-jdl-page="home"] .logo_tit {
+    position: static !important; width: auto !important; height: auto !important; margin: 0 !important;
+    background: none !important;
+}
+html[data-jdl-page="home"] .logo_tit_lk {
+    display: block !important; width: auto !important; height: auto !important; background: none !important;
+    font-size: 44px !important; line-height: 1.1 !important; font-weight: 800 !important; letter-spacing: .06em;
+    color: var(--jdl-tint) !important; text-indent: 0 !important; text-decoration: none !important;
+}
 html[data-jdl-page="home"] #logo, html[data-jdl-page="home"] .logo_extend {
     position: static !important; width: auto !important; height: auto !important; background: none !important;
 }
@@ -758,7 +772,8 @@ html[data-jdl-page="item"] .page-container { padding-top: 4px; }
     // Headings that introduce recommendation or promotion blocks.
     const PROMO_HEADING = /^(?:猜你喜欢|为你推荐|为您推荐|相似(?:宝贝|商品)|看了又看|店铺推荐|热销推荐|搭配推荐|大家都在(?:看|买|搜)|你可能还喜欢|达人选购|店长推荐|排行榜|人气单品|下载.{0,6}(?:App|APP|客户端)|扫码.{0,8}(?:手机|京东))$/;
     // Floating layers that must stay: login, captcha and slide verification.
-    const KEEP_OVERLAY = /登录|注册|验证|滑块|安全|login|passport|captcha|toast/i;
+    // The risk layers must stay visible: hiding one leaves a blank page.
+    const KEEP_OVERLAY = /登录|注册|验证|滑块|安全|异常|login|passport|captcha|toast|risk/i;
     // Form controls and labels that mark the part of a page people came for.
     const CONTROLS = 'input, textarea, select, form';
     const REAL_CONTENT = /立即购买|加入购物车|去结算|提交订单|合计|全选/;
