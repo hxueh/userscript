@@ -2,7 +2,7 @@
 // @name         JD Lite
 // @name:zh-CN   京东精简版
 // @namespace    https://github.com/hxueh
-// @version      0.2.2
+// @version      0.2.3
 // @description  Strips JD desktop pages down to search, product images, price, SKU and buy buttons, blocks tracking scripts and beacons, removes popups, side rails, sponsored results and recommendations, and restyles search and item pages in an iOS look that works at phone and desktop width.
 // @description:zh-CN 把京东桌面版精简为搜索、商品图、价格、规格和购买按钮，拦截统计脚本与上报请求，移除弹窗、侧边栏、推广商品和推荐模块，并以 iOS 风格重绘搜索页和商品页，手机和电脑宽度都能正常使用。
 // @author       hxueh
@@ -422,6 +422,9 @@ html[data-jdl-page="search"] #main_search_container_wrap > .header {
     width: auto !important; max-width: none !important; height: auto !important;
     margin: 0 !important; padding: 0 !important; min-width: 0; float: none !important;
 }
+/* On hover the site draws a white panel (::before) 49px taller than the card
+   to hold the buttons this script hides; the card's own lift effect replaces it. */
+.plugin_goodsCardWrapper::before, .plugin_goodsCardWrapper::after { display: none !important; }
 .plugin_goodsCardWrapper > [class*="_card_"] {
     display: flex !important; flex-direction: column; position: relative;
     width: auto !important; height: 100% !important; margin: 0 !important; padding: 0 !important;
