@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Taobao & Tmall Lite
 // @namespace    https://github.com/hxueh
-// @version      0.1.0
-// @description  Strips Taobao and Tmall desktop pages down to search, product images, price, SKU and buy buttons, and makes them responsive down to phone width.
+// @version      0.2.0
+// @description  Strips Taobao and Tmall desktop pages down to search, product images, price, SKU and buy buttons, removes popups, ads and recommendations with CSS and JS, and stays usable at phone width.
 // @author       hxueh
 // @license      MIT
 // @homepageURL  https://github.com/hxueh
@@ -140,6 +140,9 @@ html, body { overflow-x: hidden; }
 .trade-root-header-container [class*="search"], [class*="bg--"][class*="UIcuThJD"] { display: none !important; }
 #tbpc-trade-cart { overflow-x: auto; }
 
+/* ---------- Elements tagged by the JS layer ---------- */
+[data-tbl-hidden] { display: none !important; }
+
 /* ---------- Phone and narrow windows ---------- */
 @media (max-width: 900px) {
     .tbpc-layout { padding-left: 10px !important; padding-right: 10px !important; }
@@ -176,8 +179,13 @@ html, body { overflow-x: hidden; }
     [class*="rightWrap--"] { overflow-wrap: anywhere; }
     [class*="rightWrap--"] * { min-width: 0; }
 
-    /* Keep the buy buttons reachable at the bottom of the screen. */
-    [class*="Footer"][class*="buy"], [class*="footWrap--"] { position: sticky; bottom: 0; background: #fff; }
+    /* Pin the buy buttons (tagged by the JS layer) to the bottom edge. */
+    [data-tbl-buybar] {
+        position: fixed !important; left: 0; right: 0; bottom: 0; z-index: 1000;
+        padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: #fff;
+        box-shadow: 0 -1px 8px rgba(0, 0, 0, .12); box-sizing: border-box;
+    }
+    html[data-tbl-page="item"] body { padding-bottom: 76px; }
 }
 `;
 
@@ -221,4 +229,191 @@ html, body { overflow-x: hidden; }
         });
         wait.observe(document.documentElement, { childList: true });
     }
+
+    // ---------------------------------------------------------------------
+    // JS layer. CSS alone cannot recognise popups, recommendation blocks or
+    // the buy bar, because the sites hash their class names and rebuild the
+    // DOM after load. These helpers look at text, position and structure.
+    // ---------------------------------------------------------------------
+
+    const HIDE_ATTR = 'data-tbl-hidden';
+    const BUYBAR_ATTR = 'data-tbl-buybar';
+
+    // Tracking parameters carry no page state; stripping them keeps URLs short,
+    // shareable and free of click attribution.
+    const TRACK_PARAMS = [
+        'spm', 'scm', 'pvid', 'utparam', 'ali_trackid', 'clk1', 'bftTag', 'abbucket',
+        'acm', 'trackInfo', 'cps', 'union_lens', 'xxc', 'sourceType', 'suid',
+        'share_crt_v', 'sp_tk', 'bxsign', 'ut_sk', 'un', 'tkFlag', 'cpp', 'shareurl',
+    ];
+
+    // Headings that introduce recommendation or promotion blocks.
+    const PROMO_HEADING = /^(?:猜你喜欢|为你推荐|为您推荐|相似(?:宝贝|商品)|看了又看|店铺推荐|热销推荐|搭配推荐|大家都在(?:看|买|搜)|你可能还喜欢|品牌甄选|广告|AD|下载.{0,6}(?:App|APP|客户端)|扫码.{0,8}(?:手机|淘宝|天猫))$/;
+    // Floating layers that must stay: login, captcha and slide verification.
+    const KEEP_OVERLAY = /登录|注册|验证|滑块|安全|baxia|nc_|J_Member|login/i;
+    const AD_HOST = /click\.simba\.taobao\.com|simba\.taobao\.com|tanx\.com|alimama\.com/i;
+
+    const pageType = () => {
+        const { hostname: h, pathname: p } = location;
+        if (/item\.htm|detail/.test(p) || /^(?:item|detail)\./.test(h)) return 'item';
+        if (/cart/.test(h) || /cart/.test(p)) return 'cart';
+        if (/^s\.taobao|^list\.tmall|\/search/.test(h + p)) return 'search';
+        if (/^(?:www\.)?(?:taobao|tmall)\.(?:com|hk)$/.test(h) && (p === '/' || p === '/index.htm')) return 'home';
+        return 'other';
+    };
+
+    const cleanUrl = (raw) => {
+        let u;
+        try { u = new URL(raw, location.href); } catch { return null; }
+        let changed = false;
+        for (const k of TRACK_PARAMS) {
+            if (u.searchParams.has(k)) { u.searchParams.delete(k); changed = true; }
+        }
+        return changed ? u.toString() : null;
+    };
+
+    const hide = (el) => {
+        if (el && el.nodeType === 1) el.setAttribute(HIDE_ATTR, '');
+    };
+
+    // Strip tracking from the current address without adding a history entry.
+    const cleanLocation = () => {
+        const next = cleanUrl(location.href);
+        if (next && next !== location.href) {
+            try { history.replaceState(history.state, '', next); } catch { /* cross-origin frames */ }
+        }
+    };
+
+    // Rewrite item links so opened tabs also get clean URLs; sponsored links are
+    // left alone because their redirect target lives in the query string.
+    const cleanLinks = (root) => {
+        for (const a of root.querySelectorAll('a[href]')) {
+            const href = a.getAttribute('href');
+            if (!href || AD_HOST.test(href) || !/item\.htm|detail\.tmall|item\.taobao/.test(href)) continue;
+            const next = cleanUrl(href);
+            if (next) a.setAttribute('href', next);
+        }
+    };
+
+    // Hide fixed-position layers that are not part of sign-in or verification:
+    // coupon pop-ups, open-in-app banners, floating tool rails, QR cards.
+    const sweepOverlays = (nodes) => {
+        for (const el of nodes) {
+            if (!el.isConnected || el.hasAttribute(HIDE_ATTR)) continue;
+            if (el.id === 'J_SiteNav' || el.closest('#J_SiteNav')) continue;
+            if (KEEP_OVERLAY.test(el.id + ' ' + el.className) || el.querySelector('iframe, input, [type="password"]')) continue;
+            const pos = getComputedStyle(el).position;
+            if (pos !== 'fixed') continue;
+            const r = el.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) continue;
+            // Never remove the buy bar or anything that carries purchase controls.
+            if (/立即购买|加入购物车|结算|提交订单/.test(el.textContent)) continue;
+            if (KEEP_OVERLAY.test(el.textContent.slice(0, 200))) continue;
+            hide(el);
+        }
+    };
+
+    // Recommendation and promotion modules announce themselves with a short
+    // heading. Hide the block that heading belongs to, but never one that holds
+    // purchase controls or the main search form.
+    const sweepPromoBlocks = (root) => {
+        const main = document.querySelector('#page-content-area, #pageContent, #content_wrapper, main') || document.body;
+        const heads = root.querySelectorAll('h1, h2, h3, h4, div, span, p');
+        for (const h of heads) {
+            if (h.children.length > 1 || h.hasAttribute(HIDE_ATTR)) continue;
+            const t = h.textContent.trim();
+            if (t.length < 2 || t.length > 16 || !PROMO_HEADING.test(t)) continue;
+            // Walk up to the module root: the largest ancestor that is still a
+            // block of its own rather than the whole page column.
+            let block = h;
+            while (block.parentElement && block.parentElement !== main && block.parentElement !== document.body) {
+                const parent = block.parentElement;
+                if (parent.children.length > 6 || parent.contains(document.querySelector('form'))) break;
+                block = parent;
+            }
+            if (block === main || block === document.body) continue;
+            if (/立即购买|加入购物车|搜索/.test(block.textContent) && block.querySelector('button, input')) continue;
+            hide(block);
+        }
+    };
+
+    // Find the container that holds "add to cart" and "buy now" and tag it, so
+    // narrow screens can pin it to the bottom edge.
+    const tagBuyBar = () => {
+        if (document.querySelector(`[${BUYBAR_ATTR}]`)) return;
+        const buy = [...document.querySelectorAll('button, div, span, a')]
+            .find((e) => e.children.length === 0 && e.textContent.trim() === '立即购买');
+        if (!buy) return;
+        let box = buy.parentElement;
+        for (let i = 0; box && i < 6; i++, box = box.parentElement) {
+            if (/加入购物车/.test(box.textContent) && box.textContent.length < 40) {
+                box.setAttribute(BUYBAR_ATTR, '');
+                return;
+            }
+        }
+    };
+
+    // On the home page the search box is the only thing left, so start there.
+    const focusSearch = () => {
+        if (pageType() !== 'home') return;
+        const input = document.querySelector('#q, input[name="q"], input[type="search"]');
+        if (input && document.activeElement !== input) input.focus({ preventScroll: true });
+    };
+
+    const sweep = (nodes) => {
+        const roots = nodes && nodes.length ? nodes : [document.body];
+        for (const root of roots) {
+            if (!root.isConnected) continue;
+            cleanLinks(root);
+            sweepPromoBlocks(root);
+        }
+        // Overlays are direct children of the page shell; checking only those
+        // keeps getComputedStyle calls cheap on large result pages.
+        const shell = [...document.body.children, ...(document.querySelector('#tbpc-pop-slot')?.children || [])];
+        sweepOverlays(shell);
+        if (pageType() === 'item') tagBuyBar();
+    };
+
+    // Added nodes are batched and swept once per animation frame burst.
+    let queue = new Set();
+    let scheduled = false;
+    const flush = () => {
+        scheduled = false;
+        const nodes = [...queue].filter((n) => n.isConnected);
+        queue = new Set();
+        if (nodes.length) sweep(nodes.length > 40 ? null : nodes);
+    };
+    const enqueue = (node) => {
+        queue.add(node);
+        if (!scheduled) {
+            scheduled = true;
+            setTimeout(() => requestAnimationFrame(flush), 150);
+        }
+    };
+
+    const startJs = () => {
+        document.documentElement.dataset.tblPage = pageType();
+        cleanLocation();
+        sweep();
+        focusSearch();
+        new MutationObserver((records) => {
+            for (const rec of records) {
+                for (const n of rec.addedNodes) if (n.nodeType === 1 && !n.id?.startsWith('claude-')) enqueue(n);
+            }
+        }).observe(document.body, { childList: true, subtree: true });
+        // Hydration finishes in stages; sweep again for late-rendered modules.
+        for (const ms of [1200, 3500]) setTimeout(() => sweep(), ms);
+        // Single-page navigation changes the page type without a reload.
+        let last = location.href;
+        setInterval(() => {
+            if (location.href === last) return;
+            last = location.href;
+            document.documentElement.dataset.tblPage = pageType();
+            cleanLocation();
+            sweep();
+        }, 800);
+    };
+
+    if (document.body) startJs();
+    else document.addEventListener('DOMContentLoaded', startJs, { once: true });
 })();
