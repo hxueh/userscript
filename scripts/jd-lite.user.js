@@ -2,7 +2,7 @@
 // @name         JD Lite
 // @name:zh-CN   京东精简版
 // @namespace    https://github.com/hxueh
-// @version      0.2.1
+// @version      0.2.2
 // @description  Strips JD desktop pages down to search, product images, price, SKU and buy buttons, blocks tracking scripts and beacons, removes popups, side rails, sponsored results and recommendations, and restyles search and item pages in an iOS look that works at phone and desktop width.
 // @description:zh-CN 把京东桌面版精简为搜索、商品图、价格、规格和购买按钮，拦截统计脚本与上报请求，移除弹窗、侧边栏、推广商品和推荐模块，并以 iOS 风格重绘搜索页和商品页，手机和电脑宽度都能正常使用。
 // @author       hxueh
@@ -617,7 +617,9 @@ html[data-jdl-page="item"] .page-container { padding-top: 4px; }
     flex: none; display: flex !important; flex-direction: column; align-items: center; gap: 2px;
     width: auto !important; height: auto !important; padding: 2px 0 0 !important; border: 0 !important;
 }
-.page-right-sticky-floor { background: transparent !important; }
+/* The site pins the price block (sticky, top 52px) while the SKU list
+   scrolls under it, so it needs the card background, not a transparent one. */
+.page-right-sticky-floor { background: var(--jdl-card) !important; }
 .product-price-panel { background: transparent !important; border: 0 !important; padding-left: 0 !important; padding-right: 0 !important; }
 .product-price--main, .product-price--main * { color: var(--jdl-price) !important; }
 .product-price--value { font-size: 30px !important; font-weight: 700 !important; letter-spacing: -.02em; }
@@ -711,6 +713,9 @@ html body [data-jdl-hidden][data-jdl-hidden][data-jdl-hidden] { display: none !i
        dissolve and their children become items of the column directly. */
     /* The desktop gutter between gallery and panel is a left margin on the panel. */
     .page-content-right { position: static !important; order: -1; margin: 0 !important; }
+    /* On a phone the pinned price covers a quarter of the screen over the
+       SKU list; let it scroll with the panel, since the buy bar stays fixed. */
+    .page-right-sticky-floor { position: static !important; }
     .page-content-left, .page-content-left > * { display: contents !important; }
     [class*="_gallery_"], .left-tabs-container {
         background: var(--jdl-card); border-radius: 20px; padding: 12px; box-sizing: border-box;
