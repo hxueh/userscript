@@ -1,24 +1,16 @@
 // ==UserScript==
 // @name         Taobao & Tmall Mobile Lite
 // @namespace    https://github.com/hxueh
-// @version      0.1.3
+// @version      0.1.4
 // @description  A minimal, search-first interface across Taobao and Tmall mobile subdomains with iOS-style item pages and fewer app prompts, overlays, ads, and recommendations.
 // @author       hxueh
 // @license      MIT
 // @homepageURL  https://github.com/hxueh
 // @supportURL   https://github.com/hxueh
 // @match        https://m.taobao.com/*
-// @match        https://main.m.taobao.com/*
-// @match        https://pages-g.m.taobao.com/*
-// @match        https://s.m.taobao.com/*
 // @match        https://*.m.taobao.com/*
-// @match        https://item.taobao.com/*
 // @match        https://m.tmall.com/*
 // @match        https://*.m.tmall.com/*
-// @match        https://detail.tmall.com/*
-// @match        https://*.detail.tmall.com/*
-// @match        https://list.tmall.com/*
-// @match        https://pages.tmall.com/*
 // @run-at       document-start
 // @grant        none
 // @noframes
@@ -592,7 +584,6 @@
         return host === 's.m.taobao.com' ||
             host === 's.m.tmall.com' ||
             host === 'list.m.tmall.com' ||
-            (host === 'list.tmall.com' && path.includes('/search_product')) ||
             (isTaobaoMobileHost(host) && mobileSearchPath) ||
             (isTmallMobileHost(host) && mobileSearchPath);
     }
@@ -601,10 +592,7 @@
         const host = location.hostname.toLowerCase();
         const path = location.pathname.toLowerCase();
         return contentDetail ||
-            host === 'item.taobao.com' ||
             host === 'detail.m.tmall.com' ||
-            host === 'detail.tmall.com' ||
-            host.endsWith('.detail.tmall.com') ||
             (isTaobaoMobileHost(host) && (path.includes('/detail') || path.includes('/awp/core/detail'))) ||
             (isTmallMobileHost(host) && path.includes('/detail'));
     }
