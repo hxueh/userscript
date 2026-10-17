@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         X Lite
 // @namespace    https://greasyfork.org/users/36282-hxueh
-// @version      0.5.0
+// @version      0.5.1
 // @description  An iOS 27-inspired X with liquid glass tabs, navigation and tweet cards, mobile dock, manual video playback, no sidebar or Grok, and best-effort analytics blocking.
 // @author       hxueh
 // @license      MIT
@@ -195,7 +195,7 @@
 
     const style = document.createElement('style');
     style.id = 'x-lite-style';
-    style.dataset.version = '0.5.0';
+    style.dataset.version = '0.5.1';
     // Stable roles and test IDs survive X's generated class-name changes.
     // CSS also applies to content mounted later, before an observer can run.
     style.textContent = `
@@ -381,7 +381,10 @@
             cursor: pointer;
             touch-action: manipulation;
         }
-        @media (min-width: 1280px) { :root { --xl-rail: 260px; } }
+        /* X switches the nav to icon-plus-label at 1265px. The widest label
+           ("Follower requests") plus the nav's margin needs about 340px, so a
+           narrower rail lets the glass nav spill over the feed. */
+        @media (min-width: 1265px) { :root { --xl-rail: 344px; } }
         @media (max-width: 700px) {
             :root[data-xl-dock] header[role="banner"] { display: none !important; }
             :root[data-xl-dock] main[role="main"] {
