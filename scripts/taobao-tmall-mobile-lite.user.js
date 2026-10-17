@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Taobao & Tmall Mobile Lite
 // @namespace    https://github.com/hxueh
-// @version      0.1.1
+// @version      0.1.2
 // @description  A minimal, search-first interface across Taobao and Tmall mobile subdomains with iOS-style item pages and fewer app prompts, overlays, ads, and recommendations.
 // @author       hxueh
 // @license      MIT
@@ -377,39 +377,6 @@
             html.tbml-detail .tbml-ios-gallery canvas {
                 display: block;
                 max-width: 100%;
-            }
-
-            /* Grouped, inset cards like Settings: continuous corners and a hairline edge. */
-            html.tbml-detail .tbml-ios-card {
-                box-sizing: border-box !important;
-                margin: 12px max(12px, env(safe-area-inset-left)) !important;
-                border: 0 !important;
-                border-radius: 22px !important;
-                background: var(--tbml-card) !important;
-                box-shadow: inset 0 0 0 0.5px var(--tbml-border), 0 2px 14px rgba(0, 0, 0, 0.04) !important;
-                -webkit-backdrop-filter: blur(24px) saturate(150%);
-                backdrop-filter: blur(24px) saturate(150%);
-                overflow: hidden;
-            }
-
-            html.tbml-detail .tbml-ios-row {
-                box-sizing: border-box !important;
-                min-height: 48px;
-                margin: 8px max(12px, env(safe-area-inset-left)) !important;
-                padding: 12px 16px !important;
-                border: 0 !important;
-                border-radius: 18px !important;
-                background: var(--tbml-card) !important;
-                box-shadow: inset 0 0 0 0.5px var(--tbml-border) !important;
-            }
-
-            /* A row inside a card becomes a flat list cell separated by a hairline. */
-            html.tbml-detail .tbml-ios-card .tbml-ios-row {
-                margin: 0 !important;
-                border-radius: 0 !important;
-                background: transparent !important;
-                box-shadow: none !important;
-                border-top: 0.5px solid var(--tbml-border) !important;
             }
 
             html.tbml-detail .tbml-ios-price {
@@ -1015,47 +982,6 @@
         return changed;
     }
 
-    function styleDetailRowsAndCards(root = document) {
-        let changed = false;
-        let rowCount = 0;
-        let cardCount = 0;
-
-        for (const element of queryElements(root, 'div, li, section, article', 1500)) {
-            if (element.closest('.tbml-ios-topbar, .tbml-ios-buybar, .tbml-ios-gallery')) continue;
-            const text = normalizedText(element);
-            if (!text || text.length > 220) continue;
-            const visual = visibleElementRect(element);
-            if (!visual) continue;
-            const { rect, style } = visual;
-            if (style.position === 'fixed' || style.position === 'sticky') continue;
-
-            if (rowCount < 24 && DETAIL_ROW_TEXT.test(text) && rect.width >= window.innerWidth * 0.68 && rect.height >= 32 && rect.height <= 180) {
-                const nestedMatch = [...element.children].some(child => {
-                    const childText = normalizedText(child);
-                    return childText && childText.length < text.length && DETAIL_ROW_TEXT.test(childText);
-                });
-                if (!nestedMatch) {
-                    element.classList.add('tbml-ios-row');
-                    rowCount += 1;
-                    changed = true;
-                }
-            }
-
-            if (cardCount >= 32 || rect.width < window.innerWidth * 0.80 || rect.height < 56 || rect.height > 760) continue;
-            const marker = elementMarker(element);
-            const namedCard = /(?:^|[-_])(card|module|panel|section|info|sku|service|delivery|seller|shop|review|parameter|coupon|promotion|guarantee)(?:$|[-_])/.test(marker) ||
-                /item-info|detail-info|goods-info|shop-info|seller-info/.test(marker);
-            const semanticCard = /(?:店铺|进店|商品评价|宝贝评价|服务保障|参数信息|优惠明细|已选|配送至)/.test(text);
-            if (!namedCard && !semanticCard) continue;
-            if (element.parentElement?.classList.contains('tbml-ios-card')) continue;
-
-            element.classList.add('tbml-ios-card');
-            cardCount += 1;
-            changed = true;
-        }
-        return changed;
-    }
-
     function enhanceDetailPage(root = document) {
         if (!isDetailPage() || !document.body) return false;
         document.body.classList.add('tbml-ios-detail-body');
@@ -1063,8 +989,7 @@
         return styleDetailTopBar(root) |
             styleDetailBuyBar(root) |
             styleDetailGallery(root) |
-            styleDetailTypography(root) |
-            styleDetailRowsAndCards(root);
+            styleDetailTypography(root);
     }
 
     function removeDetailRecommendations(root = document) {
