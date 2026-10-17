@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Taobao & Tmall Lite
 // @namespace    https://github.com/hxueh
-// @version      0.2.1
+// @version      0.2.2
 // @description  Strips Taobao and Tmall desktop pages down to search, product images, price, SKU and buy buttons, removes popups, ads and recommendations with CSS and JS, and stays usable at phone width.
 // @author       hxueh
 // @license      MIT
@@ -50,8 +50,10 @@ html, body {
     background: #fff !important;
     min-width: 0 !important;
 }
-/* clip, unlike hidden, does not create a scroll container, so sticky bars keep working. */
-html, body { overflow-x: clip; }
+/* clip, unlike hidden, does not create a scroll container, so sticky bars keep working.
+   overflow-y must stay visible: with the page stripped down, body can be shorter than
+   the search suggestion panel, and a scrolling body would cut that panel off. */
+html, body { overflow-x: clip !important; overflow-y: visible !important; min-height: 100vh; }
 
 /* Fixed-width page containers become fluid with a readable maximum. */
 .tbpc-layout, [class*="contentWrapAdapt--"], [class*="innerWrap--"][class*="headerBox"],
@@ -79,8 +81,20 @@ html, body { overflow-x: clip; }
 }
 #J_SiteNavBdL, #J_SiteNavBdR { float: none !important; }
 
-/* ---------- Home: logo + search box only ---------- */
+/* ---------- Home: logo + search box only, centered ---------- */
 .tbpc-layout > [class*="J_Module"], [class*="cup"][class*="search-fixed"] ~ * { display: none !important; }
+html[data-tbl-page="home"] .tbh-logo-right,
+html[data-tbl-page="home"] #J_Search > form + div { display: none !important; }
+html[data-tbl-page="home"] .tbpc-layout:has(.top-wrap) { height: auto !important; margin-top: 16vh; }
+html[data-tbl-page="home"] [class*="search-decorations"],
+html[data-tbl-page="home"] [class*="search-decorations"] .top { height: auto !important; }
+html[data-tbl-page="home"] .top-wrap {
+    display: flex !important; flex-direction: column; align-items: center; gap: 28px;
+    height: auto !important; width: auto !important;
+}
+html[data-tbl-page="home"] .top-wrap > * { float: none !important; margin: 0 !important; }
+html[data-tbl-page="home"] .tbh-logo { width: auto !important; height: auto !important; }
+html[data-tbl-page="home"] .tbh-search { width: min(680px, 100%) !important; }
 
 /* ---------- Search results ---------- */
 /* Hot-model chips and brand/filter rows. The column also carries a
@@ -216,6 +230,7 @@ html, body { overflow-x: clip; }
     const apply = () => {
         ensureViewport();
         injectStyle();
+        document.documentElement.dataset.tblPage = pageType();
     };
 
     apply();
@@ -262,14 +277,15 @@ html, body { overflow-x: clip; }
     const REAL_CONTENT = /立即购买|加入购物车|结算|提交订单|合计|全选/;
     const AD_HOST = /click\.simba\.taobao\.com|simba\.taobao\.com|tanx\.com|alimama\.com/i;
 
-    const pageType = () => {
+    // A function declaration, not a const, so apply() can call it before this point.
+    function pageType() {
         const { hostname: h, pathname: p } = location;
         if (/item\.htm|detail/.test(p) || /^(?:item|detail)\./.test(h)) return 'item';
         if (/cart/.test(h) || /cart/.test(p)) return 'cart';
         if (/^s\.taobao|^list\.tmall|\/search/.test(h + p)) return 'search';
         if (/^(?:www\.)?(?:taobao|tmall)\.(?:com|hk)$/.test(h) && (p === '/' || p === '/index.htm')) return 'home';
         return 'other';
-    };
+    }
 
     const cleanUrl = (raw) => {
         let u;
