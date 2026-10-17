@@ -32,7 +32,8 @@ changes (CI enforces this).
    `https://raw.githubusercontent.com/hxueh/userscript/main/scripts/pipifier.user.js`
 2. Copy your webhook secret from <https://greasyfork.org/en/users/webhook-info>.
 3. In the GitHub repo, go to Settings, Webhooks, Add webhook:
-   - Payload URL: `https://greasyfork.org/en/users/webhook`
+   - Payload URL: `https://api.greasyfork.org/en/users/36282-hxueh/webhook`
+     (the exact URL is on the webhook-info page from step 2)
    - Content type: `application/json`
    - Secret: the value from step 2
    - Events: just the push event
