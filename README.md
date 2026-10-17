@@ -1,39 +1,83 @@
 # userscript
 
-Source of truth for my ten userscripts. Each push to `main` that touches a script
-is synced to Greasyfork through its GitHub webhook.
+My userscripts, mostly lighter and calmer versions of sites I use on a phone-sized
+screen. This repo is the source of truth. Every push to `main` that touches a
+script is synced to Greasyfork through a GitHub webhook, so the Greasyfork page
+is where you install from and this repo is where the code lives.
 
-| File | Greasyfork |
-| --- | --- |
-| `scripts/youtube-mobile-lite.user.js` | [600230](https://greasyfork.org/en/scripts/600230) |
-| `scripts/sponsorblock-lite.user.js` | [560869](https://greasyfork.org/en/scripts/560869) |
-| `scripts/instagram-lite.user.js` | [600638](https://greasyfork.org/en/scripts/600638) |
-| `scripts/bilibili-mobile-lite.user.js` | [589625](https://greasyfork.org/en/scripts/589625) |
-| `scripts/xiaohongshu-lite.user.js` | [600561](https://greasyfork.org/en/scripts/600561) |
-| `scripts/douban-mobile-lite.user.js` | [600461](https://greasyfork.org/en/scripts/600461) |
-| `scripts/pipifier.user.js` | [560887](https://greasyfork.org/en/scripts/560887) |
-| `scripts/jd-mobile-lite.user.js` | [589941](https://greasyfork.org/en/scripts/589941) |
-| `scripts/taobao-tmall-mobile-lite.user.js` | [589946](https://greasyfork.org/en/scripts/589946) |
-| `scripts/x-lite.user.js` | [600670](https://greasyfork.org/en/scripts/600670) |
+## Install
+
+Install a userscript manager first (Tampermonkey or Violentmonkey both work in
+Chrome and Brave), then open a script's Greasyfork page and click **Install**.
+Updates arrive through the manager's normal update check.
+
+| Script | What it does | Install |
+| --- | --- | --- |
+| YouTube Mobile Lite | iOS-style video feed with no Shorts, native comments, DASH/HLS playback, background audio | [600230](https://greasyfork.org/en/scripts/600230) |
+| SponsorBlock Lite | Skips sponsor segments automatically on YouTube and Bilibili | [560869](https://greasyfork.org/en/scripts/560869) |
+| PiPifier | Picture-in-Picture button for YouTube videos | [560887](https://greasyfork.org/en/scripts/560887) |
+| Bilibili Mobile Lite | iOS-style feed, creator pages, native comments, DASH playback, background audio | [589625](https://greasyfork.org/en/scripts/589625) |
+| Instagram Lite | iOS 26 look without Reels, ads or suggested posts | [600638](https://greasyfork.org/en/scripts/600638) |
+| X Lite | Liquid-glass tabs and cards, mobile dock, no sidebar or Grok | [600670](https://greasyfork.org/en/scripts/600670) |
+| Xiaohongshu Lite | Phone-style web with a tab bar, Recommend-only feed, full-screen image viewer | [600561](https://greasyfork.org/en/scripts/600561) |
+| Douban Mobile Lite | Full-page interface for m.douban.com with search, broadcasts, books, films and groups | [600461](https://greasyfork.org/en/scripts/600461) |
+| JD Mobile Lite | iOS styling for JD's mobile web, minus app prompts and overlays | [589941](https://greasyfork.org/en/scripts/589941) |
+| Taobao & Tmall Mobile Lite | Search-first mobile interface with fewer prompts, ads and recommendations | [589946](https://greasyfork.org/en/scripts/589946) |
+
+Source files live in `scripts/`, one per script, named `<name>.user.js`.
+
+## Changing a script
+
+1. Edit the file in `scripts/`.
+2. Bump `@version` in the same commit. Greasyfork only delivers an update when
+   the version changes, and the `version-bump` workflow fails any push or PR that
+   changes a script without bumping it.
+3. Push to `main`.
+
+A few things to leave alone:
+
+- Don't add `@downloadURL` or `@updateURL`. Greasyfork injects its own when it
+  serves the code, and a second copy in the source would be duplicated.
+- Don't rename a file. Each script's sync URL points at its path on
+  `raw.githubusercontent.com`, so a rename breaks that script's sync until the URL
+  is updated on Greasyfork.
+- Touch only the scripts you mean to change. The webhook re-syncs every script
+  whose file appears in the pushed commits.
 
 ## How the sync works
 
-Greasyfork has no upload API. Its webhook receives GitHub's push event, looks
-at the files changed in the pushed commits, and re-fetches any script whose
-**sync URL** matches one of them. So only the scripts you touched are updated.
-
-Bump `@version` whenever you change a script; users only get an update when it
-changes (CI enforces this).
+Greasyfork has no upload API. Its webhook receives GitHub's push event, reads
+the list of files changed in the pushed commits, and re-fetches each script whose
+**sync URL** matches one of them. A README-only commit therefore updates
+nothing, which is the behavior we want.
 
 ## One-time setup
 
-1. On Greasyfork, open each script's **Admin** tab, then **Sync**. Set the sync
-   type to *Automatic* and the URL to the raw file, for example:
-   `https://raw.githubusercontent.com/hxueh/userscript/main/scripts/pipifier.user.js`
-2. Copy your webhook secret from <https://greasyfork.org/en/users/webhook-info>.
-3. In the GitHub repo, go to Settings, Webhooks, Add webhook:
-   - Payload URL: `https://api.greasyfork.org/en/users/36282-hxueh/webhook`
-     (the exact URL is on the webhook-info page from step 2)
-   - Content type: `application/json`
-   - Secret: the value from step 2
-   - Events: just the push event
+Only needed when setting up a new account or adding a script.
+
+**Per script.** On the script's Greasyfork **Admin** page, under *Source
+Syncing*, set the sync type to *Automatic* and the URL to the raw file:
+
+```
+https://raw.githubusercontent.com/hxueh/userscript/main/scripts/<name>.user.js
+```
+
+**Once per repo.** Copy the secret from
+<https://greasyfork.org/en/users/webhook-info>, then add a webhook under
+GitHub Settings → Webhooks:
+
+- Payload URL: `https://api.greasyfork.org/en/users/36282-hxueh/webhook`
+  (the exact URL is on the webhook-info page; the older
+  `greasyfork.org/en/users/webhook` form returns 404)
+- Content type: `application/json`
+- Secret: the value from the webhook-info page
+- Events: just the push event
+
+**Checking it.** After a push, open the webhook's **Recent Deliveries** on
+GitHub. A 200 means Greasyfork received it, and the script's page should show
+the new version within a minute.
+
+## Adding a new script
+
+Create the script on Greasyfork, set its sync URL as above, add the file under
+`scripts/`, and add a row to the table at the top of this README.
