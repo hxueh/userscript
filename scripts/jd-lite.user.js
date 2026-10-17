@@ -2,7 +2,7 @@
 // @name         JD Lite
 // @name:zh-CN   京东精简版
 // @namespace    https://github.com/hxueh
-// @version      0.2.0
+// @version      0.2.1
 // @description  Strips JD desktop pages down to search, product images, price, SKU and buy buttons, blocks tracking scripts and beacons, removes popups, side rails, sponsored results and recommendations, and restyles search and item pages in an iOS look that works at phone and desktop width.
 // @description:zh-CN 把京东桌面版精简为搜索、商品图、价格、规格和购买按钮，拦截统计脚本与上报请求，移除弹窗、侧边栏、推广商品和推荐模块，并以 iOS 风格重绘搜索页和商品页，手机和电脑宽度都能正常使用。
 // @author       hxueh
@@ -287,6 +287,8 @@ html[data-jdl-page="home"] #search .form {
 #main_search_container_wrap, [class*="_container_"]:has(> #main_search_container_wrap) {
     width: auto !important; min-width: 0 !important; max-width: none !important; margin: 0 !important;
 }
+/* Its parent is a flex row, where "auto" shrinks the wrapper to its content. */
+#main_search_container_wrap { width: 100% !important; flex: 1 1 auto !important; }
 html[data-jdl-page="search"] #main_search_container_wrap > .header {
     position: sticky !important; top: 0; z-index: 900; height: auto !important;
     margin: 0 !important; padding: 8px 16px !important;
@@ -389,6 +391,16 @@ html[data-jdl-page="search"] #main_search_container_wrap > .header {
 /* Chips that are only a programme logo (国家补贴, 超级补贴, sale banners) are
    tagged by the JS layer; the rest share one text style. */
 [class*="_box-bar-middle_"] > .box-bar-item * { color: inherit !important; font-weight: inherit !important; }
+/* The active sort and every selected filter chip become a filled capsule, the
+   same treatment as the selected scope tab, instead of JD's red text. */
+[class*="_sort-tag-button__active_"], [class*="_trigger-wrap_"][class*="active"],
+[class*="_box-bar-middle_"] > .box-bar-item:has([class*="__active_"], [class*="-active_"]) {
+    background: var(--jdl-label) !important; color: #fff !important; box-shadow: none !important;
+}
+[class*="_sort-tag-button__active_"] *, [class*="_trigger-wrap_"][class*="active"] *,
+[class*="_box-bar-middle_"] > .box-bar-item:has([class*="__active_"], [class*="-active_"]) * { color: #fff !important; }
+[class*="_sort-tag-button__active_"] img, [class*="_trigger-wrap_"][class*="active"] img,
+[class*="_box-bar-middle_"] > .box-bar-item:has([class*="__active_"], [class*="-active_"]) img { filter: brightness(0) invert(1); }
 /* Empty checkbox items carry only an icon badge (a sale logo), not a filter word. */
 [class*="_box-bar-middle_"] > .box-bar-item:empty { display: none !important; }
 
@@ -479,7 +491,9 @@ html[data-jdl-page="search"] #main_search_container_wrap > .header {
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font-size: 12px !important; color: var(--jdl-label2) !important; line-height: 16px !important;
 }
-.plugin_goodsCardWrapper [class*="_goods_volume_container_"] * { font-size: inherit !important; color: inherit !important; }
+.plugin_goodsCardWrapper [class*="_goods_volume_container_"] * {
+    font-size: inherit !important; color: inherit !important; margin-left: 0 !important; padding-left: 0 !important;
+}
 .plugin_goodsCardWrapper [class*="_info_"] > [class*="_newStyle_"]:has([class*="_name_"]) {
     margin-top: auto !important; padding: 4px 12px 12px !important; height: auto !important;
     background: transparent !important; border: 0 !important; display: block !important;
@@ -490,6 +504,13 @@ html[data-jdl-page="search"] #main_search_container_wrap > .header {
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .plugin_goodsCardWrapper [class*="_name_"] * { font-size: inherit !important; color: inherit !important; }
+
+/* The coupon strip above the grid ("¥54 无门槛…后失效"), and the "商品精选
+   广告" block and "猜你喜欢" feed under the pager. The last two are
+   taller than the heading sweep's size guard allows, so they are hidden by id.
+   Their wrappers stay: the results' infinite scroll may watch them. */
+#youlikeCenter, #advertisingCenter, [class*="_couponFilterContainer_"],
+[class*="_bottomCenter_"]:has(> #youlikeCenter), [class*="_bottomCenter_"]:has(> #advertisingCenter) { display: none !important; }
 
 /* Sponsored cards, tagged by the JS layer. */
 html body [data-jdl-ad][data-jdl-ad][data-jdl-ad] { display: none !important; }
@@ -506,6 +527,11 @@ html body [data-jdl-ad][data-jdl-ad][data-jdl-ad] { display: none !important; }
     box-sizing: border-box; text-align: center;
 }
 [class*="_pagination_item_"][class*="_active_"] { background: var(--jdl-label) !important; color: #fff !important; box-shadow: none !important; }
+[class*="_pagination_toPageNum_"] input {
+    width: 48px !important; height: 36px !important; margin: 0 6px !important; padding: 0 8px !important;
+    border: 0 !important; border-radius: 10px !important; background: var(--jdl-fill) !important;
+    text-align: center; font-size: 14px !important; box-sizing: border-box;
+}
 
 /* ---------- Item page ---------- */
 html[data-jdl-page="item"] .padding-box { padding: 0 16px !important; box-sizing: border-box; }
@@ -573,6 +599,23 @@ html[data-jdl-page="item"] .page-container { padding-top: 4px; }
 .page-right-skuname, .page-right-skuname .sku-title, .page-right-skuname .sku-title-text { height: auto !important; max-height: none !important; }
 .page-right-skuname .sku-title-text {
     display: -webkit-box !important; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden !important;
+}
+/* The tag icons (自营, 门店有售) float left of the name, which breaks the
+   line clamp; set them inline at the start of the first line instead. */
+.page-right-skuname .sku-title-icon-box {
+    float: none !important; display: inline-flex !important; align-items: center; gap: 3px;
+    height: auto !important; margin: 0 6px 0 0 !important; vertical-align: 3px;
+}
+/* The 收藏 (save) button shares the title box; keep it a small icon label. */
+.page-right-skuname .sku-title { display: flex !important; align-items: flex-start; gap: 12px; }
+.page-right-skuname .sku-title-text { flex: 1 1 auto; min-width: 0; }
+.page-right-skuname .follow-btn, .page-right-skuname .follow-btn * {
+    font-size: 12px !important; line-height: 16px !important; font-weight: 400 !important;
+    color: var(--jdl-label2) !important; letter-spacing: 0;
+}
+.page-right-skuname .follow-btn {
+    flex: none; display: flex !important; flex-direction: column; align-items: center; gap: 2px;
+    width: auto !important; height: auto !important; padding: 2px 0 0 !important; border: 0 !important;
 }
 .page-right-sticky-floor { background: transparent !important; }
 .product-price-panel { background: transparent !important; border: 0 !important; padding-left: 0 !important; padding-right: 0 !important; }
@@ -685,7 +728,12 @@ html body [data-jdl-hidden][data-jdl-hidden][data-jdl-hidden] { display: none !i
     }
     [class*="_gallery_"] .stage img, [class*="_gallery_"] .main-img img { width: 100% !important; height: auto !important; }
     [class*="_gallery_"] .attribute { display: none !important; }
-    .left-tabs-container, .left-tabs-content, .left-tabs-item { width: 100% !important; min-width: 0 !important; }
+    .left-tabs-container, .left-tabs-content, .left-tabs-item {
+        width: 100% !important; min-width: 0 !important; box-sizing: border-box !important;
+    }
+    .left-tabs-item { padding-left: 4px !important; padding-right: 4px !important; }
+    /* The description is laid out at a fixed 750px for desktop. */
+    .left-tabs-content div { max-width: 100% !important; }
     .left-tabs-content img { max-width: 100% !important; height: auto !important; }
     .page-right-skuname, .page-right-skuname * { font-size: 17px !important; line-height: 23px !important; }
     /* Long titles and the delivery row would otherwise run past the screen edge. */
@@ -837,7 +885,7 @@ html body [data-jdl-hidden][data-jdl-hidden][data-jdl-hidden] { display: none !i
     // purchase controls or the main search form.
     const sweepPromoBlocks = (root) => {
         const main = document.querySelector('.left-tabs-content, #searchCenter, #J_app') || document.body;
-        const heads = root.querySelectorAll('h1, h2, h3, h4, div, span, p');
+        const heads = root.querySelectorAll('h1, h2, h3, h4, h5, h6, div, span, p');
         for (const h of heads) {
             if (h.children.length > 1 || h.hasAttribute(HIDE_ATTR)) continue;
             const t = h.textContent.trim();
