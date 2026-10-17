@@ -24,6 +24,7 @@ Updates arrive through the manager's normal update check.
 | JD Mobile Lite | iOS styling for JD's mobile web, minus app prompts and overlays | [589941](https://greasyfork.org/en/scripts/589941) |
 | Taobao & Tmall Mobile Lite | Search-first mobile interface with fewer prompts, ads and recommendations | [589946](https://greasyfork.org/en/scripts/589946) |
 | Taobao & Tmall Lite | Desktop Taobao and Tmall reduced to search, product, SKU and buy buttons; responsive down to phone width | [600695](https://greasyfork.org/en/scripts/600695) |
+| Max: Always Highest Video Quality | Pins Max (HBO Max) to the top rung of each quality tier so adaptive bitrate never drops to 234p | _pending_ |
 
 Source files live in `scripts/`, one per script, named `<name>.user.js`.
 
