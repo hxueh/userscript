@@ -1,6 +1,6 @@
 # userscript
 
-Source of truth for my userscripts. Each push to `main` that touches a script
+Source of truth for my ten userscripts. Each push to `main` that touches a script
 is synced to Greasyfork through its GitHub webhook.
 
 | File | Greasyfork |
@@ -14,6 +14,7 @@ is synced to Greasyfork through its GitHub webhook.
 | `scripts/pipifier.user.js` | [560887](https://greasyfork.org/en/scripts/560887) |
 | `scripts/jd-mobile-lite.user.js` | [589941](https://greasyfork.org/en/scripts/589941) |
 | `scripts/taobao-tmall-mobile-lite.user.js` | [589946](https://greasyfork.org/en/scripts/589946) |
+| `scripts/x-lite.user.js` | [600670](https://greasyfork.org/en/scripts/600670) |
 
 ## How the sync works
 
