@@ -10,7 +10,7 @@
 // @name:es      SponsorBlock Lite - Saltar patrocinadores YouTube/Bilibili
 // @name:it      SponsorBlock Lite - Salta sponsor YouTube/Bilibili
 // @namespace    https://github.com/hxueh
-// @version      1.1.1
+// @version      1.1.2
 // @description  Auto-skip sponsor segments on YouTube and Bilibili using SponsorBlock API
 // @description:en Auto-skip sponsor segments on YouTube and Bilibili using SponsorBlock API
 // @description:zh-CN 基于 SponsorBlock API 自动跳过 YouTube 和 Bilibili 视频中的赞助片段
