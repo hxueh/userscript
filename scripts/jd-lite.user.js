@@ -2,7 +2,7 @@
 // @name         JD Lite
 // @name:zh-CN   京东精简版
 // @namespace    https://github.com/hxueh
-// @version      0.2.3
+// @version      0.2.4
 // @description  Strips JD desktop pages down to search, product images, price, SKU and buy buttons, blocks tracking scripts and beacons, removes popups, side rails, sponsored results and recommendations, and restyles search and item pages in an iOS look that works at phone and desktop width.
 // @description:zh-CN 把京东桌面版精简为搜索、商品图、价格、规格和购买按钮，拦截统计脚本与上报请求，移除弹窗、侧边栏、推广商品和推荐模块，并以 iOS 风格重绘搜索页和商品页，手机和电脑宽度都能正常使用。
 // @author       hxueh
@@ -719,6 +719,13 @@ html body [data-jdl-hidden][data-jdl-hidden][data-jdl-hidden] { display: none !i
     /* On a phone the pinned price covers a quarter of the screen over the
        SKU list; let it scroll with the panel, since the buy bar stays fixed. */
     .page-right-sticky-floor { position: static !important; }
+    /* The panel is a fixed-height scroll box on desktop. In the phone column
+       it scrolled on its own, sliding the title under the pinned 官方购买 /
+       以旧换新 tab bar; let it grow and scroll with the page instead. */
+    .page-right-wrap, .page-right-information {
+        height: auto !important; max-height: none !important; overflow: visible !important;
+    }
+    .page-right-tab { position: static !important; }
     .page-content-left, .page-content-left > * { display: contents !important; }
     [class*="_gallery_"], .left-tabs-container {
         background: var(--jdl-card); border-radius: 20px; padding: 12px; box-sizing: border-box;
@@ -726,7 +733,11 @@ html body [data-jdl-hidden][data-jdl-hidden][data-jdl-hidden] { display: none !i
     }
     [class*="_gallery_"] { order: -2; }
     .left-tabs-container { order: 0; }
-    [class*="_gallery_"] { width: 100% !important; height: auto !important; display: block !important; }
+    /* The site sizes the gallery with height 0 plus padding-bottom 74%, a
+       desktop aspect box; with height auto that padding is empty space. */
+    [class*="_gallery_"] {
+        width: 100% !important; height: auto !important; display: block !important; padding: 12px !important;
+    }
     [class*="_gallery_"] .image-carousel { display: none !important; }
     /* On desktop the photo is absolutely placed beside the thumbnail column. */
     [class*="_gallery_"] .stage, [class*="_gallery_"] .centre, [class*="_gallery_"] .image-area,
