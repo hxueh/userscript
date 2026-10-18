@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WSJ Dark Mode
 // @namespace    https://greasyfork.org/users/36282-hxueh
-// @version      0.1.1
+// @version      0.1.2
 // @description  A calm dark mode for The Wall Street Journal that follows the system theme. It covers every page, including menus, paywalls, charts and market tables, without relying on WSJ class names.
 // @author       hxueh
 // @license      MIT
@@ -38,21 +38,23 @@
         scrollbar-color: #4a4a4a #141414;
     }
 
-    /* Undo the filter on content that carries its own colors. A second
-       inversion restores photos and video. The 0.92 on the root filter leaves
-       them slightly dimmed, which suits a dark page. */
+    /* Undo the filter on content that carries its own colors, so photos
+       and video keep their real colors instead of looking like negatives.
+       invert(1) hue-rotate(180deg) cancels the root filter. brightness(.85)
+       runs before the root filter, so it dims the final image a little,
+       which suits a dark page. */
     img,
     picture,
     video,
     [style*="background-image"] {
-        filter: invert(1) hue-rotate(180deg);
+        filter: brightness(.85) invert(1) hue-rotate(180deg);
     }
 
-    /* Do not invert an image twice when it sits inside an element that is
-       already restored. */
-    [style*="background-image"] img,
-    [style*="background-image"] picture,
-    [style*="background-image"] video {
+    /* Restore only the outermost media element. WSJ wraps photos as
+       <picture><img></picture>, and filters stack, so restoring both would
+       invert the photo again. */
+    :is(img, picture, video, [style*="background-image"])
+        :is(img, picture, video, [style*="background-image"]) {
         filter: none;
     }
 
