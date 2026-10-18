@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WSJ Dark Mode
 // @namespace    https://greasyfork.org/users/36282-hxueh
-// @version      0.1.2
+// @version      0.1.3
 // @description  A calm dark mode for The Wall Street Journal that follows the system theme. It covers every page, including menus, paywalls, charts and market tables, without relying on WSJ class names.
 // @author       hxueh
 // @license      MIT
@@ -25,27 +25,23 @@
     // The CSS lives inside a media query. The browser then switches the theme
     // when the system theme changes, and the script needs no JavaScript
     // listeners or MutationObserver.
-    const CSS = `
-@media (prefers-color-scheme: dark) {
-    /* invert(.92) maps white to about #141414. Pure black would look harsh
-       and would smear on OLED screens. hue-rotate(180deg) undoes the hue
-       change that inversion causes, so blue stays blue and red stays red.
-       This keeps the green and red of stock quotes correct. */
-    html {
-        background: #fff;
-        filter: invert(.92) hue-rotate(180deg);
-        /* The page scrollbar is outside the filter, so color it directly. */
-        scrollbar-color: #4a4a4a #141414;
-    }
-
-    /* Undo the filter on content that carries its own colors, so photos
-       and video keep their real colors instead of looking like negatives.
+    //
+    // MEDIA_CSS restores the real colors of photos and video. It is also
+    // added to every shadow root, because page styles do not reach inside
+    // one and video players often keep their <video> there.
+    const MEDIA_CSS = `
+    /* Undo the filter on content that carries its own colors, so photos,
+       GIFs, video and embedded video players keep their real colors
+       instead of looking like negatives.
        invert(1) hue-rotate(180deg) cancels the root filter. brightness(.85)
        runs before the root filter, so it dims the final image a little,
        which suits a dark page. */
     img,
     picture,
     video,
+    iframe[src*="video"],
+    iframe[src*="youtube"],
+    iframe[src*="vimeo"],
     [style*="background-image"] {
         filter: brightness(.85) invert(1) hue-rotate(180deg);
     }
@@ -65,7 +61,22 @@
     img[src*=".svg?"] {
         filter: none;
     }
+`;
 
+    const CSS = `
+@media (prefers-color-scheme: dark) {
+    /* invert(.92) maps white to about #141414. Pure black would look harsh
+       and would smear on OLED screens. hue-rotate(180deg) undoes the hue
+       change that inversion causes, so blue stays blue and red stays red.
+       This keeps the green and red of stock quotes correct. */
+    html {
+        background: #fff;
+        filter: invert(.92) hue-rotate(180deg);
+        /* The page scrollbar is outside the filter, so color it directly. */
+        scrollbar-color: #4a4a4a #141414;
+    }
+
+${MEDIA_CSS}
     /* Text selection: the filter would invert the default highlight. */
     ::selection {
         background: #b3d4fc;
@@ -81,6 +92,21 @@
     style.id = 'wsj-dark-mode';
     style.textContent = CSS;
     (document.head || document.documentElement).appendChild(style);
+
+    // Video players built as web components keep their <video> in a shadow
+    // root. The root filter still reaches it, but the restoring rules do not,
+    // so the video would show inverted. Give each new shadow root its own
+    // copy of the media rules. @grant none runs this in the page, so the
+    // patch is in place before WSJ scripts create their components.
+    const shadowCSS = `@media (prefers-color-scheme: dark) {\n${MEDIA_CSS}\n}`;
+    const attachShadow = Element.prototype.attachShadow;
+    Element.prototype.attachShadow = function (...args) {
+        const root = attachShadow.apply(this, args);
+        const shadowStyle = document.createElement('style');
+        shadowStyle.textContent = shadowCSS;
+        root.appendChild(shadowStyle);
+        return root;
+    };
 
     // Some WSJ scripts replace the document head on navigation. Put the style
     // back if that removes it.
