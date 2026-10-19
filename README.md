@@ -25,7 +25,7 @@ Updates arrive through the manager's normal update check.
 | JD Lite | Desktop JD reduced to search, product, SKU and buy buttons, without tracking, ads or AI features; responsive down to phone width | [600734](https://greasyfork.org/en/scripts/600734) |
 | Taobao & Tmall Mobile Lite | Search-first mobile interface with fewer prompts, ads and recommendations | [589946](https://greasyfork.org/en/scripts/589946) |
 | Taobao & Tmall Lite | Desktop Taobao and Tmall reduced to search, product, SKU and buy buttons; responsive down to phone width | [600695](https://greasyfork.org/en/scripts/600695) |
-| Ctrip Mobile Lite | iOS 27 Liquid Glass look for m.ctrip.com with a floating tab bar and dark mode; blocks analytics, ad and app wake-up scripts, and removes ads and app prompts | Not yet on Greasyfork |
+| Ctrip Mobile Lite | iOS 27 Liquid Glass look for m.ctrip.com with a floating tab bar and dark mode; blocks analytics, ad and app wake-up scripts, and removes ads and app prompts | [601079](https://greasyfork.org/en/scripts/601079) |
 | WSJ Dark Mode | Follows the system theme and darkens all WSJ pages, with photos and video kept in true color | [560962](https://greasyfork.org/en/scripts/560962) |
 | Max: Always Highest Video Quality | Pins Max (HBO Max) to the top rung of each quality tier so adaptive bitrate never drops to 234p | [600723](https://greasyfork.org/en/scripts/600723) |
 
