@@ -2,9 +2,9 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.3.0
-// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Tokyo Night by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Switches with Feishu's own light and dark theme.
-// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Tokyo Night 配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。跟随飞书自身的浅色与深色主题。
+// @version      0.3.1
+// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and GitHub Dark by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Switches with Feishu's own light and dark theme.
+// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 GitHub Dark 配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -151,7 +151,7 @@
     // ---------------------------------------------------------------------
     // Theme. Feishu's Universe Design (UD) components have stable ud__* class
     // names and read colours from tokens such as --bg-body. The theme styles
-    // those classes and redefines those tokens (Solarized Light, Tokyo Night),
+    // those classes and redefines those tokens (Solarized Light, GitHub Dark),
     // so it follows Feishu's own light and dark switch.
     //
     // Speed: it is plain CSS under html.fml, so no script runs while you
@@ -342,172 +342,173 @@ html.fml, html.fml body {
 }
 @media (prefers-color-scheme: dark) {
     html.fml, html.fml body {
-        /* Tokyo Night. */
-        --fml-blue: #7aa2f7;
-        --fml-green: #9ece6a;
-        --fml-red: #f7768e;
-        --N00: #16161e;
-        --N50: #1a1b26;
-        --N100: #1f2335;
-        --N200: #292e42;
-        --N300: #2f3549;
-        --N350: #3b4261;
-        --N400: #414868;
-        --N500: #565f89;
-        --N600: #737aa2;
-        --N650: #9aa5ce;
-        --N700: #a9b1d6;
-        --N800: #c0caf5;
-        --N900: #c8d3f5;
-        --N950: #e0e6ff;
+        /* GitHub Dark (Primer dark palette). */
+        --fml-blue: #58a6ff;
+        --fml-green: #3fb950;
+        --fml-red: #f85149;
+        --N00: #010409;
+        --N50: #0d1117;
+        --N100: #161b22;
+        --N200: #21262d;
+        --N300: #30363d;
+        --N350: #3d444d;
+        --N400: #484f58;
+        --N500: #6e7681;
+        --N600: #8b949e;
+        --N650: #9198a1;
+        --N700: #b1bac4;
+        --N800: #c9d1d9;
+        --N900: #e6edf3;
+        --N950: #f0f6fc;
         --N1000: #ffffff;
-        --B50: #202333;
-        --primary-pri-50: #202333;
-        --primary-pri-50-raw: 32,35,51;
-        --B100: #262b3f;
-        --primary-pri-100: #262b3f;
-        --primary-pri-100-raw: 38,43,63;
-        --B200: #313b58;
-        --primary-pri-200: #313b58;
-        --primary-pri-200-raw: 49,59,88;
-        --B300: #40517a;
-        --primary-pri-300: #40517a;
-        --primary-pri-300-raw: 64,81,122;
-        --B350: #4f6599;
-        --primary-pri-350: #4f6599;
-        --primary-pri-350-raw: 79,101,153;
-        --B400: #6280c3;
-        --primary-pri-400: #6280c3;
-        --primary-pri-400-raw: 98,128,195;
-        --B500: #7aa2f7;
-        --primary-pri-500: #7aa2f7;
-        --primary-pri-500-raw: 122,162,247;
-        --B600: #82a7f7;
-        --primary-pri-600: #82a7f7;
-        --primary-pri-600-raw: 130,167,247;
-        --B700: #8bacf7;
-        --primary-pri-700: #8bacf7;
-        --primary-pri-700-raw: 139,172,247;
-        --B800: #96b2f6;
-        --primary-pri-800: #96b2f6;
-        --primary-pri-800-raw: 150,178,246;
-        --B900: #a0b8f6;
-        --primary-pri-900: #a0b8f6;
-        --primary-pri-900-raw: 160,184,246;
-        --primary-content-default: #7aa2f7;
-        --primary-content-default-raw: 122,162,247;
-        --primary-content-hover: #8db0f8;
-        --primary-content-hover-raw: 141,176,248;
-        --primary-content-pressed: #6183d4;
-        --primary-content-pressed-raw: 97,131,212;
-        --primary-content-loading: #40517a;
-        --primary-content-loading-raw: 64,81,122;
-        --primary-fill-default: #7aa2f7;
-        --primary-fill-default-raw: 122,162,247;
-        --primary-fill-hover: #8db0f8;
-        --primary-fill-hover-raw: 141,176,248;
-        --primary-fill-pressed: #6183d4;
-        --primary-fill-pressed-raw: 97,131,212;
-        --primary-fill-loading: #40517a;
-        --primary-fill-loading-raw: 64,81,122;
-        --primary-fill-solid-01: #202333;
-        --primary-fill-solid-01-raw: 32,35,51;
-        --primary-fill-solid-02: #262b3f;
-        --primary-fill-solid-02-raw: 38,43,63;
-        --primary-fill-solid-03: #313b58;
-        --primary-fill-solid-03-raw: 49,59,88;
-        --primary-fill-transparent-01: rgba(122, 162, 247, 0.15);
-        --primary-fill-transparent-01-raw: 122,162,247;
-        --primary-fill-transparent-02: rgba(122, 162, 247, 0.2);
-        --primary-fill-transparent-02-raw: 122,162,247;
-        --primary-fill-transparent-03: rgba(122, 162, 247, 0.3);
-        --primary-fill-transparent-03-raw: 122,162,247;
-        --primary-on-primary-fill: #16161e;
-        --primary-on-primary-fill-raw: 22,22,30;
-        --bg-pricolor: #7aa2f7;
-        --bg-pricolor-raw: 122,162,247;
-        --text-link-normal: #7aa2f7;
-        --text-link-normal-raw: 122,162,247;
-        --text-link-hover: #8db0f8;
-        --text-link-hover-raw: 141,176,248;
-        --text-link-pressed: #6183d4;
-        --text-link-pressed-raw: 97,131,212;
-        --text-link-loading: #40517a;
-        --text-link-loading-raw: 64,81,122;
-        --fill-active: rgba(122, 162, 247, 0.2);
-        --fill-active-raw: 122,162,247;
-        --fill-selected: rgba(122, 162, 247, 0.15);
-        --fill-selected-raw: 122,162,247;
-        --bg-text-selection: rgba(122, 162, 247, 0.28);
-        --bg-text-selection-raw: 122,162,247;
-        --bg-body: #1a1b26;
-        --bg-body-raw: 26,27,38;
-        --bg-base: #16161e;
-        --bg-base-raw: 22,22,30;
-        --bg-body-overlay: #1f2335;
-        --bg-body-overlay-raw: 31,35,53;
-        --bg-content-base: #16161e;
-        --bg-content-base-raw: 22,22,30;
-        --bg-filler: #292e42;
-        --bg-filler-raw: 41,46,66;
-        --bg-float: #1f2335;
-        --bg-float-raw: 31,35,53;
-        --bg-float-base: #1a1b26;
-        --bg-float-base-raw: 26,27,38;
-        --bg-float-overlay: #292e42;
-        --bg-float-overlay-raw: 41,46,66;
-        --bg-sub-navigation: #1f2335;
-        --bg-sub-navigation-raw: 31,35,53;
-        --bg-tips: #414868;
-        --bg-tips-raw: 65,72,104;
-        --text-title: #c0caf5;
-        --text-title-raw: 192,202,245;
-        --text-caption: #a9b1d6;
-        --text-caption-raw: 169,177,214;
-        --text-placeholder: #565f89;
-        --text-placeholder-raw: 86,95,137;
-        --text-disabled: #545c7e;
-        --text-disabled-raw: 84,92,126;
-        --text-link-disabled: #545c7e;
-        --text-link-disabled-raw: 84,92,126;
-        --icon-n1: #c0caf5;
-        --icon-n1-raw: 192,202,245;
-        --icon-n2: #a9b1d6;
-        --icon-n2-raw: 169,177,214;
-        --icon-n3: #737aa2;
-        --icon-n3-raw: 115,122,162;
-        --icon-disabled: #545c7e;
-        --icon-disabled-raw: 84,92,126;
-        --fill-disabled: #3b4261;
-        --fill-disabled-raw: 59,66,97;
-        --line-border-component: #3b4261;
-        --line-border-component-raw: 59,66,97;
-        --line-divider-module: #15161e;
-        --line-divider-module-raw: 21,22,30;
-        --bg-float-push: rgba(31, 35, 53, 0.8);
-        --bg-float-push-raw: 31,35,53;
-        --fill-hover: rgba(192, 202, 245, 0.06);
-        --fill-hover-raw: 192,202,245;
-        --fill-focus: rgba(192, 202, 245, 0.1);
-        --fill-focus-raw: 192,202,245;
-        --fill-pressed: rgba(192, 202, 245, 0.1);
-        --fill-pressed-raw: 192,202,245;
-        --fill-tag: rgba(192, 202, 245, 0.08);
-        --fill-tag-raw: 192,202,245;
-        --line-border-card: rgba(192, 202, 245, 0.1);
-        --line-border-card-raw: 192,202,245;
-        --line-divider-default: rgba(169, 177, 214, 0.12);
-        --line-divider-default-raw: 169,177,214;
-        --fill-loading-mask: rgba(22, 22, 30, 0.6);
-        --fill-loading-mask-raw: 22,22,30;
-        --fml-glass-edge: inset 0 .5px 0 rgba(255, 255, 255, .16), inset 0 0 0 .5px rgba(255, 255, 255, .08);
-        --fml-glass-shadow: 0 12px 36px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .25);
-        --fml-panel-shadow: 0 8px 28px rgba(0, 0, 0, .35), 0 1px 3px rgba(0, 0, 0, .25);
+        --B50: #111d2e;
+        --primary-pri-50: #111d2e;
+        --primary-pri-50-raw: 17,29,46;
+        --B100: #14253c;
+        --primary-pri-100: #14253c;
+        --primary-pri-100-raw: 20,37,60;
+        --B200: #193357;
+        --primary-pri-200: #193357;
+        --primary-pri-200-raw: 25,51,87;
+        --B300: #1f4478;
+        --primary-pri-300: #1f4478;
+        --primary-pri-300-raw: 31,68,120;
+        --B350: #255598;
+        --primary-pri-350: #255598;
+        --primary-pri-350-raw: 37,85,152;
+        --B400: #2d6cc4;
+        --primary-pri-400: #2d6cc4;
+        --primary-pri-400-raw: 45,108,196;
+        --B500: #58a6ff;
+        --primary-pri-500: #58a6ff;
+        --primary-pri-500-raw: 88,166,255;
+        --B600: #6cb6ff;
+        --primary-pri-600: #6cb6ff;
+        --primary-pri-600-raw: 108,182,255;
+        --B700: #79c0ff;
+        --primary-pri-700: #79c0ff;
+        --primary-pri-700-raw: 121,192,255;
+        --B800: #96d0ff;
+        --primary-pri-800: #96d0ff;
+        --primary-pri-800-raw: 150,208,255;
+        --B900: #a5d6ff;
+        --primary-pri-900: #a5d6ff;
+        --primary-pri-900-raw: 165,214,255;
+        --primary-content-default: #58a6ff;
+        --primary-content-default-raw: 88,166,255;
+        --primary-content-hover: #79c0ff;
+        --primary-content-hover-raw: 121,192,255;
+        --primary-content-pressed: #388bfd;
+        --primary-content-pressed-raw: 56,139,253;
+        --primary-content-loading: #1f4478;
+        --primary-content-loading-raw: 31,68,120;
+        --primary-fill-default: #1f6feb;
+        --primary-fill-default-raw: 31,111,235;
+        --primary-fill-hover: #388bfd;
+        --primary-fill-hover-raw: 56,139,253;
+        --primary-fill-pressed: #1158c7;
+        --primary-fill-pressed-raw: 17,88,199;
+        --primary-fill-loading: #1f4478;
+        --primary-fill-loading-raw: 31,68,120;
+        --primary-fill-solid-01: #111d2e;
+        --primary-fill-solid-01-raw: 17,29,46;
+        --primary-fill-solid-02: #14253c;
+        --primary-fill-solid-02-raw: 20,37,60;
+        --primary-fill-solid-03: #193357;
+        --primary-fill-solid-03-raw: 25,51,87;
+        --primary-fill-transparent-01: rgba(56, 139, 253, 0.15);
+        --primary-fill-transparent-01-raw: 56,139,253;
+        --primary-fill-transparent-02: rgba(56, 139, 253, 0.2);
+        --primary-fill-transparent-02-raw: 56,139,253;
+        --primary-fill-transparent-03: rgba(56, 139, 253, 0.3);
+        --primary-fill-transparent-03-raw: 56,139,253;
+        --primary-on-primary-fill: #ffffff;
+        --primary-on-primary-fill-raw: 255,255,255;
+        --bg-pricolor: #1f6feb;
+        --bg-pricolor-raw: 31,111,235;
+        --text-link-normal: #58a6ff;
+        --text-link-normal-raw: 88,166,255;
+        --text-link-hover: #79c0ff;
+        --text-link-hover-raw: 121,192,255;
+        --text-link-pressed: #388bfd;
+        --text-link-pressed-raw: 56,139,253;
+        --text-link-loading: #1f4478;
+        --text-link-loading-raw: 31,68,120;
+        --fill-active: rgba(56, 139, 253, 0.2);
+        --fill-active-raw: 56,139,253;
+        --fill-selected: rgba(56, 139, 253, 0.15);
+        --fill-selected-raw: 56,139,253;
+        --bg-text-selection: rgba(56, 139, 253, 0.3);
+        --bg-text-selection-raw: 56,139,253;
+        --bg-body: #0d1117;
+        --bg-body-raw: 13,17,23;
+        --bg-base: #010409;
+        --bg-base-raw: 1,4,9;
+        --bg-body-overlay: #161b22;
+        --bg-body-overlay-raw: 22,27,34;
+        --bg-content-base: #0d1117;
+        --bg-content-base-raw: 13,17,23;
+        --bg-filler: #21262d;
+        --bg-filler-raw: 33,38,45;
+        --bg-float: #161b22;
+        --bg-float-raw: 22,27,34;
+        --bg-float-base: #0d1117;
+        --bg-float-base-raw: 13,17,23;
+        --bg-float-overlay: #21262d;
+        --bg-float-overlay-raw: 33,38,45;
+        --bg-sub-navigation: #161b22;
+        --bg-sub-navigation-raw: 22,27,34;
+        --bg-tips: #3d444d;
+        --bg-tips-raw: 61,68,77;
+        --text-title: #e6edf3;
+        --text-title-raw: 230,237,243;
+        --text-caption: #9198a1;
+        --text-caption-raw: 145,152,161;
+        --text-placeholder: #6e7681;
+        --text-placeholder-raw: 110,118,129;
+        --text-disabled: #484f58;
+        --text-disabled-raw: 72,79,88;
+        --text-link-disabled: #484f58;
+        --text-link-disabled-raw: 72,79,88;
+        --icon-n1: #e6edf3;
+        --icon-n1-raw: 230,237,243;
+        --icon-n2: #9198a1;
+        --icon-n2-raw: 145,152,161;
+        --icon-n3: #6e7681;
+        --icon-n3-raw: 110,118,129;
+        --icon-disabled: #484f58;
+        --icon-disabled-raw: 72,79,88;
+        --fill-disabled: #30363d;
+        --fill-disabled-raw: 48,54,61;
+        --line-border-component: #3d444d;
+        --line-border-component-raw: 61,68,77;
+        --line-divider-module: #010409;
+        --line-divider-module-raw: 1,4,9;
+        --bg-float-push: rgba(22, 27, 34, 0.8);
+        --bg-float-push-raw: 22,27,34;
+        --fill-hover: rgba(177, 186, 196, 0.08);
+        --fill-hover-raw: 177,186,196;
+        --fill-focus: rgba(177, 186, 196, 0.12);
+        --fill-focus-raw: 177,186,196;
+        --fill-pressed: rgba(177, 186, 196, 0.12);
+        --fill-pressed-raw: 177,186,196;
+        --fill-tag: rgba(177, 186, 196, 0.1);
+        --fill-tag-raw: 177,186,196;
+        --line-border-card: rgba(240, 246, 252, 0.1);
+        --line-border-card-raw: 240,246,252;
+        --line-divider-default: rgba(240, 246, 252, 0.1);
+        --line-divider-default-raw: 240,246,252;
+        --fill-loading-mask: rgba(1, 4, 9, 0.6);
+        --fill-loading-mask-raw: 1,4,9;
+        --fml-glass-edge: inset 0 .5px 0 rgba(240, 246, 252, .14), inset 0 0 0 .5px rgba(240, 246, 252, .08);
+        --fml-glass-shadow: 0 12px 36px rgba(1, 4, 9, .55), 0 2px 6px rgba(1, 4, 9, .3);
+        --fml-panel-shadow: 0 8px 28px rgba(1, 4, 9, .45), 0 1px 3px rgba(1, 4, 9, .3);
+        /* Blue, purple and green glows on the GitHub Dark canvas. */
         --fml-wallpaper:
-            radial-gradient(70vw 60vh at 0% 0%, rgba(122, 162, 247, .22), transparent 70%),
-            radial-gradient(60vw 60vh at 100% 100%, rgba(187, 154, 247, .18), transparent 70%),
-            radial-gradient(50vw 50vh at 85% 5%, rgba(125, 207, 255, .12), transparent 70%),
-            #16161e;
+            radial-gradient(70vw 60vh at 0% 0%, rgba(56, 139, 253, .2), transparent 70%),
+            radial-gradient(60vw 60vh at 100% 100%, rgba(163, 113, 247, .15), transparent 70%),
+            radial-gradient(50vw 50vh at 85% 5%, rgba(63, 185, 80, .08), transparent 70%),
+            #0d1117;
     }
 }
 
@@ -802,10 +803,10 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
         light: [[0, '#001f27'], [0.14, '#073642'], [0.22, '#2c4b53'], [0.35, '#586e75'],
             [0.45, '#657b83'], [0.6, '#93a1a1'], [0.76, '#b3b8ae'], [0.84, '#d2cbb5'],
             [0.9, '#e4ddc8'], [0.95, '#eee8d5'], [0.97, '#f6efdb'], [1, '#fdf6e3']],
-        dark: [[0, '#0f0f14'], [0.04, '#13131a'], [0.08, '#16161e'], [0.1, '#1a1b26'],
-            [0.16, '#1f2335'], [0.22, '#292e42'], [0.26, '#2f3549'], [0.31, '#3b4261'],
-            [0.37, '#414868'], [0.46, '#565f89'], [0.55, '#737aa2'], [0.65, '#a9b1d6'],
-            [0.82, '#b4bdea'], [0.92, '#c0caf5'], [1, '#e0e6ff']],
+        dark: [[0, '#010409'], [0.04, '#05080d'], [0.08, '#0a0e14'], [0.1, '#0d1117'],
+            [0.16, '#161b22'], [0.22, '#21262d'], [0.26, '#262c36'], [0.31, '#30363d'],
+            [0.37, '#3d444d'], [0.46, '#484f58'], [0.55, '#6e7681'], [0.65, '#9198a1'],
+            [0.82, '#b1bac4'], [0.92, '#e6edf3'], [1, '#f0f6fc']],
     };
     const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
     const rampAt = (ramp, l) => {
