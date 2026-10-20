@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.2.1
+// @version      0.2.2
 // @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Tokyo Night by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Switches with Feishu's own light and dark theme.
 // @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Tokyo Night 配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
@@ -619,6 +619,9 @@ html.fml .appNavbar {
     background: transparent !important;
     isolation: isolate;
     color: var(--text-title) !important;
+    /* Reserve a gap in the flex row so the wallpaper separates the sidebar
+       from the chat list while the sidebar keeps its original width. */
+    margin-inline-end: 8px !important;
 }
 html.fml .appNavbar::before {
     content: "";
