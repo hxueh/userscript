@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.2.2
+// @version      0.2.3
 // @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Tokyo Night by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Switches with Feishu's own light and dark theme.
 // @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Tokyo Night 配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
@@ -21,60 +21,52 @@
     // whether a broken feature is caused by this script.
     if (new URLSearchParams(location.search).get('fml') === 'off') return;
 
-    // Feishu's web client is one single-page app, so the same document moves
-    // between Messenger, Docs, Calendar and the rest without a reload. Every
-    // part of this script checks the route first and does nothing outside
-    // /next/messenger.
+    // Feishu is one single-page app across Messenger, Docs, Calendar and the
+    // rest, so every part of this script checks the route first.
     const onMessenger = () => location.pathname.startsWith('/next/messenger');
 
     // ---------------------------------------------------------------------
-    // Request blocker. It runs first, at document-start, so the blocked
-    // scripts never execute. With @grant none the script runs in the page, so
-    // patching the page's own fetch, XHR, sendBeacon and script loading
-    // affects every caller.
-    //
-    // Block telemetry and the Security Policy SDK. The IM gateway, the
-    // frontier WebSocket, passport heartbeat and file and image CDNs stay.
+    // Request blocker. It runs at document-start in the page (@grant none), so
+    // patching fetch, XHR, sendBeacon and script loading affects every caller
+    // before the blocked scripts can run. The IM gateway, WebSocket, passport
+    // heartbeat and file CDNs are not touched.
     // ---------------------------------------------------------------------
     const BLOCKED_URL = new RegExp([
-        // Tea / Rangers, ByteDance's event analytics: the collectors on
-        // mcs*.feishu.cn and mcs*.larksuite.com, and the SDK and its
-        // autotrack, heatmap and A/B plugins on the applog CDNs.
+        // Tea / Rangers analytics: collectors and SDK plugins.
         '//mcs(?:-[a-z0-9-]+)?\\.(?:feishu\\.cn|larksuite\\.com|zijieapi\\.com)/',
         '//[^/]*applogcdn\\.com/', '/collect-autotrack-rangers\\.js', '//analytics\\.snssdk\\.com/',
-        // Slardar, the performance and error monitor: its SDK, its settings
-        // fetch and its upload endpoints.
+        // Slardar performance and error monitor: SDK, settings, uploads.
         '//[^/]*bytedapm\\.com/', '/slardar/fe/sdk-web/', '//slardar[^/]*\\.(?:feishu\\.cn|larksuite\\.com)/',
         '/monitor_(?:browser|web)/(?:collect|settings)', '//mon\\.(?:zijieapi|snssdk|tiktokv)\\.com/',
-        // The messenger's own copy of the Slardar SDK (about 90 KB). The
-        // HTML loads it with a plain <script src>, so the parser blocker
-        // below stops it.
+        // The messenger's own Slardar copy (about 90 KB), loaded by the HTML.
         '/web-client-next/p/static/js/slardar\\.[0-9a-f]+\\.js',
-        // The ByteDance accessibility-testing entry, which loads its own
-        // tooling and reporting. Readers and keyboard use do not need it.
+        // Accessibility-testing tooling; readers and keyboards do not need it.
         '/accessibility-task-platform/',
-        // Feishu loads policy-sdk-<version>.js from lmp/scs (currently with
-        // a double slash). Match this SDK path, not general policy APIs,
-        // so the login and message endpoints keep their normal behaviour.
+        // The Security Policy SDK file only (the path has a double slash),
+        // not the policy APIs that login and messages use.
         '/lmp/scs/+policy-sdk(?:-[0-9][0-9A-Za-z._-]*)?\\.js(?:[?#]|$)',
         // Third-party marketing tags.
         '//www\\.googletagmanager\\.com/', '//(?:www|ssl)\\.google-analytics\\.com/',
         '//(?:px\\.ads|snap)\\.licdn\\.com/', '//px\\.ads\\.linkedin\\.com/', '//hm\\.baidu\\.com/',
     ].join('|'), 'i');
+    // This runs on every request and every image src the app sets, so the
+    // cheap checks come first. data: and blob: URLs are never trackers, and a
+    // base64 image can be hundreds of KB, which the regex would scan in full.
     const isBlocked = (url) => {
-        if (!onMessenger()) return false;
+        if (!url) return false;
         try {
-            return BLOCKED_URL.test(String(url instanceof Request ? url.url : url));
+            const s = typeof url === 'string' ? url : String(url instanceof Request ? url.url : url);
+            if (s.startsWith('data:') || s.startsWith('blob:')) return false;
+            return onMessenger() && BLOCKED_URL.test(s);
         } catch { return false; }
     };
 
-    // Beacons report that they were queued so the caller moves on.
+    // A blocked beacon reports success so the caller moves on.
     if (navigator.sendBeacon) {
         const beacon = navigator.sendBeacon.bind(navigator);
         navigator.sendBeacon = (url, data) => (isBlocked(url) ? true : beacon(url, data));
     }
-    // A blocked fetch resolves with an empty JSON object rather than failing,
-    // so the SDKs neither throw nor queue the data to retry later.
+    // A blocked fetch resolves with "{}" so the SDKs do not throw or retry.
     const nativeFetch = window.fetch;
     window.fetch = function (input, init) {
         if (isBlocked(input)) {
@@ -82,8 +74,7 @@
         }
         return nativeFetch.apply(this, arguments);
     };
-    // A blocked XHR is pointed at an empty data: URL, which completes normally
-    // without a network request.
+    // A blocked XHR loads an empty data: URL and completes without the network.
     const nativeOpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function (method, url, ...rest) {
         if (isBlocked(url)) return nativeOpen.call(this, 'GET', 'data:application/json,{}', ...rest);
@@ -97,8 +88,7 @@
             set(value) { if (!isBlocked(value)) desc.set.call(this, value); },
         });
     }
-    // Scripts added from code: a blocked src is never set, and an error event
-    // fires so loaders waiting on the script give up instead of hanging.
+    // A blocked script fires an error so loaders give up instead of hanging.
     const scriptSrc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
     Object.defineProperty(HTMLScriptElement.prototype, 'src', {
         configurable: true, enumerable: scriptSrc.enumerable, get: scriptSrc.get,
@@ -109,21 +99,21 @@
         },
     });
     const nativeSetAttribute = Element.prototype.setAttribute;
+    // React calls setAttribute for every class, aria-* and data-* change, so
+    // test the attribute name before running the URL regex.
     Element.prototype.setAttribute = function (name, value) {
-        if (isBlocked(value) && String(name).toLowerCase() === 'src'
-            && (this instanceof HTMLScriptElement || this instanceof HTMLImageElement || this instanceof HTMLIFrameElement)) {
+        if (typeof name === 'string' && name.length === 3 && name.toLowerCase() === 'src'
+            &&(this instanceof HTMLScriptElement || this instanceof HTMLImageElement || this instanceof HTMLIFrameElement)
+            && isBlocked(value)) {
             this.src = value; // routed through the guarded setters above
             return;
         }
         return nativeSetAttribute.call(this, name, value);
     };
 
-    // Scripts written in the HTML: the parser inserts them without the src
-    // setter, so the guards above never see them. An observer on the
-    // document runs before the parser executes each new script, and a
-    // script whose type is not JavaScript is skipped. Removing it as well
-    // keeps it from running if something resets the type. Firefox also
-    // fires beforescriptexecute, which is the direct way to cancel one.
+    // The HTML parser inserts scripts without the src setter. An observer
+    // sees each one before it runs and disables it; Firefox can also cancel
+    // it with beforescriptexecute.
     const blockParsed = (node) => {
         if (node.tagName !== 'SCRIPT' || !node.src || !isBlocked(node.src)) return;
         node.type = 'javascript/blocked';
@@ -133,25 +123,20 @@
         for (const rec of records) for (const n of rec.addedNodes) blockParsed(n);
     });
     parserGuard.observe(document, { childList: true, subtree: true });
-    // Only the first HTML parse needs this. After it, scripts come from code
-    // and the src setter covers them, so the observer stops to save work.
+    // Later scripts come from code and hit the src setter, so stop here.
     document.addEventListener('DOMContentLoaded', () => parserGuard.disconnect(), { once: true });
     document.addEventListener('beforescriptexecute', (e) => {
         if (e.target.src && isBlocked(e.target.src)) e.preventDefault();
     }, true);
 
-    // Inline snippets in the HTML call these globals directly, for example
-    // gtag(...) or window.collectEvent(...). Stubs that accept any call keep
-    // those calls from throwing now that the libraries never load.
+    // Stubs for globals that inline snippets call, so they do not throw.
     const noop = () => {};
     for (const name of ['gtag', 'ga', 'collectEvent', 'lintrk']) {
         if (!window[name]) window[name] = noop;
     }
-    // Slardar is used through chains such as Slardar('init', ...),
-    // Slardar.on('init', fn) and Slardar.getSender().send(...). A proxy
-    // that returns itself from every call and property answers all of
-    // them. It has no "then", so awaiting it does not hang, and it turns
-    // into an empty string or 0 where code reads it as a value.
+    // Slardar is used through chains such as Slardar.getSender().send(...).
+    // This proxy returns itself for any call or property, has no "then" so
+    // awaiting it does not hang, and converts to "" as a value.
     const sink = new Proxy(function () {}, {
         get: (_, key) => (key === 'then' || key === Symbol.iterator ? undefined
             : key === Symbol.toPrimitive ? () => ''
@@ -164,39 +149,24 @@
     if (!window._hmt) window._hmt = [];
 
     // ---------------------------------------------------------------------
-    // Theme. Feishu builds its UI from the Universe Design (UD) library, whose
-    // components carry stable ud__* class names and read their colours from
-    // CSS variables such as --bg-body and --text-title. So the theme styles
-    // those components and reuses those variables, instead of matching the
-    // app's hashed class names. Because the colours come from Feishu's own
-    // variables, its light and dark themes both keep working.
+    // Theme. Feishu's Universe Design (UD) components have stable ud__* class
+    // names and read colours from tokens such as --bg-body. The theme styles
+    // those classes and redefines those tokens (Solarized Light, Tokyo Night),
+    // so it follows Feishu's own light and dark switch.
     //
-    // The look follows iOS and macOS 27: Liquid Glass on surfaces that float
-    // above the content (menus, popovers, tooltips, dialogs), capsule
-    // buttons, continuous-corner (squircle) cards and the system font. The
-    // colours are Solarized Light by day and Tokyo Night by night, applied by
-    // redefining Feishu's own colour tokens, so they follow the same light and
-    // dark switch as Feishu.
-    //
-    // Speed: backdrop-filter blurs what is behind an element on every frame
-    // that it changes, so it is used only on small floating surfaces, never on
-    // the chat list or the message list that scroll all the time. Everything
-    // is plain CSS scoped under html.fml, so the browser does the work once
-    // and no script runs while you scroll or type.
+    // Speed: it is plain CSS under html.fml, so no script runs while you
+    // scroll or type. backdrop-filter re-blurs on every frame its backdrop
+    // changes, so only small floating surfaces (menus, tooltips) use it.
     // ---------------------------------------------------------------------
     const CSS = `
 html.fml, html.fml body {
     --fml-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Microsoft YaHei", sans-serif;
     --fml-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    /* Accents from the active palette (Solarized Light by day). */
     --fml-blue: #268bd2;
     --fml-green: #859900;
     --fml-red: #dc322f;
-    /* Liquid Glass: a translucent tint of Feishu's own surface colour (set
-       on each surface below, because a var() inside a custom property
-       resolves here on <html> and would miss a theme set further down), a
-       blur that also raises saturation, a bright inner edge and a soft
-       shadow. */
+    /* Liquid Glass. The tint is set on each surface, because a var() in a
+       custom property resolves here on <html>. */
     --fml-glass-filter: blur(24px) saturate(180%);
     --fml-glass-edge: inset 0 .5px 0 rgba(255, 255, 255, .7), inset 0 0 0 .5px rgba(255, 255, 255, .28);
     --fml-glass-shadow: 0 12px 36px rgba(0, 0, 0, .16), 0 2px 6px rgba(0, 0, 0, .06);
@@ -205,19 +175,14 @@ html.fml, html.fml body {
     --fml-radius-l: 22px;
     --fml-radius-panel: 18px;
     --fml-panel-shadow: 0 8px 28px rgba(7, 54, 66, .1), 0 1px 3px rgba(7, 54, 66, .08);
-    /* The wallpaper behind every glass panel. Soft glows in the palette's
-       blue, cyan and yellow on base2 give the translucent panels something
-       to show through. */
+    /* Soft palette glows that show through the glass panels. */
     --fml-wallpaper:
         radial-gradient(70vw 60vh at 0% 0%, rgba(38, 139, 210, .16), transparent 70%),
         radial-gradient(60vw 60vh at 100% 100%, rgba(42, 161, 152, .14), transparent 70%),
         radial-gradient(50vw 50vh at 85% 5%, rgba(181, 137, 0, .1), transparent 70%),
         #eee8d5;
 
-    /* Solarized Light. Feishu reads every colour from these tokens on :root
-       (and switches them for dark in a prefers-color-scheme block), so
-       redefining them on html.fml recolours every UD component. Each token
-       has a "-raw" twin ("r,g,b") that components use inside rgba(). */
+    /* Solarized Light core tokens. Each "-raw" twin is "r,g,b" for rgba(). */
     --N00: #fdf6e3;
     --N50: #f8f1de;
     --N100: #eee8d5;
@@ -538,7 +503,6 @@ html.fml, html.fml body {
         --fml-glass-edge: inset 0 .5px 0 rgba(255, 255, 255, .16), inset 0 0 0 .5px rgba(255, 255, 255, .08);
         --fml-glass-shadow: 0 12px 36px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .25);
         --fml-panel-shadow: 0 8px 28px rgba(0, 0, 0, .35), 0 1px 3px rgba(0, 0, 0, .25);
-        /* Tokyo Night wallpaper: blue, purple and cyan glows on #16161e. */
         --fml-wallpaper:
             radial-gradient(70vw 60vh at 0% 0%, rgba(122, 162, 247, .22), transparent 70%),
             radial-gradient(60vw 60vh at 100% 100%, rgba(187, 154, 247, .18), transparent 70%),
@@ -560,10 +524,10 @@ html.fml body {
 html.fml ::selection { background: color-mix(in srgb, var(--fml-blue) 28%, transparent); }
 
 /* ---- Removed: Download Feishu ------------------------------------------ */
-/* The download entry in the sidebar and the "get the desktop app" banners.
-   Entries that only show text are found by the script below and tagged
-   with .fml-hidden. */
+/* .navItem-download is the sidebar entry. The script below finds other
+   entries by their text and tags them .fml-hidden. */
 html.fml :is(
+    .navItem-download,
     a[href*="feishu.cn/download"], a[href*="larksuite.com/download"],
     [aria-label="下载飞书"], [aria-label="下載飛書"], [aria-label="Download Feishu" i], [aria-label="Download Lark" i],
     [title="下载飞书"], [title="下載飛書"], [title="Download Feishu" i], [title="Download Lark" i]
@@ -583,20 +547,13 @@ html.fml ::-webkit-scrollbar-thumb:hover { background-color: rgba(128, 128, 128,
 html.fml ::-webkit-scrollbar-track, html.fml ::-webkit-scrollbar-corner { background: transparent; }
 
 /* ---- Liquid Glass: the window ----------------------------------------- */
-/* The whole messenger sits on the palette wallpaper, and every part of it
-   (the tab bar on the left, the chat list, the chat) is a translucent glass
-   panel over that wallpaper, with a bright edge and a soft shadow.
-   Speed: these panels have no backdrop-filter. What is behind them is only
-   the wallpaper, a set of soft gradients, so a blur would look the same and
-   cost a full-panel blur on every frame the chat list or the messages
-   scroll. Only bars and controls that float above moving content (the chat
-   header, the message box, menus) blur what is behind them. */
+/* The sidebar, chat list and chat are translucent panels on the wallpaper.
+   They have no backdrop-filter: behind them is only soft gradients, so a
+   blur would look the same but cost a full-panel blur on each scroll frame. */
 html.fml .appLayout {
     background: var(--fml-wallpaper) !important;
 }
-/* Clear the layers between the wallpaper and the panels. Feishu paints the
-   frame around the panels in a slate tenant colour, and every panel has
-   solid layers inside it. */
+/* Clear Feishu's solid frame and inner layers. */
 html.fml :is(.messagesLayout, .appLayout-content, .appNavbar-navbarMenu,
              .page-content-wrapper .larklet-extension-component,
              .page-content-wrapper .larklet-extension,
@@ -612,15 +569,13 @@ html.fml .page-content-wrapper {
     overflow: hidden;
     box-shadow: var(--fml-glass-edge), var(--fml-panel-shadow) !important;
 }
-/* The tab bar: a floating glass sidebar, as in macOS 27. The glass is a
-   pseudo-element inset from the edges, so the bar keeps its own size and
-   layout; isolation keeps the pseudo-element behind the bar's content. */
+/* The sidebar glass is an inset pseudo-element, so the bar keeps its
+   layout; isolation keeps the glass behind the bar's content. */
 html.fml .appNavbar {
     background: transparent !important;
     isolation: isolate;
     color: var(--text-title) !important;
-    /* Reserve a gap in the flex row so the wallpaper separates the sidebar
-       from the chat list while the sidebar keeps its original width. */
+    /* A gap between the sidebar and the chat list. */
     margin-inline-end: 8px !important;
 }
 html.fml .appNavbar::before {
@@ -634,8 +589,7 @@ html.fml .appNavbar::before {
     corner-shape: squircle;
     box-shadow: var(--fml-glass-edge), var(--fml-panel-shadow);
 }
-/* Feishu draws the tab bar for its slate colour, with white text and
-   icons. On glass the palette's text colours apply instead. */
+/* Feishu's white sidebar text does not show on light glass. */
 html.fml .appNavbar :is(.navbarMenu, .navbarMenu *, .appNavbar-search-input, .appNavbar-search-input *,
                          .quick-jump-enter__icon, .quick-jump-enter__icon *) {
     color: var(--text-caption) !important;
@@ -664,19 +618,15 @@ html.fml .appNavbar .appNavbar-search-input {
     border-radius: 999px !important;
     box-shadow: var(--fml-glass-edge) !important;
 }
-/* The chat header floats above the messages as they scroll under it, so
-   it blurs them, as toolbars do in iOS 27. */
+/* The chat header and the message box sit above and below the message
+   scroller, not over it, so a backdrop blur would only blur the static
+   panel. A plain tint looks the same and keeps them off the GPU. */
 html.fml .chatContainer__headerWrapper {
     background: color-mix(in srgb, var(--bg-body) 60%, transparent) !important;
-    -webkit-backdrop-filter: var(--fml-glass-filter) !important;
-    backdrop-filter: var(--fml-glass-filter) !important;
     box-shadow: inset 0 -.5px 0 var(--line-divider-default) !important;
 }
-/* The message box: a glass field with continuous corners. */
 html.fml .lark__editor--default {
     background: color-mix(in srgb, var(--bg-float) 62%, transparent) !important;
-    -webkit-backdrop-filter: var(--fml-glass-filter) !important;
-    backdrop-filter: var(--fml-glass-filter) !important;
     border: 0 !important;
     border-radius: var(--fml-radius-panel) !important;
     corner-shape: squircle;
@@ -692,8 +642,7 @@ html.fml :is(
     .ud__popover__content, .ud__popover-inner, .ud__dropdown__menu, .ud__dropdown-menu,
     .ud__menu, .ud__select__dropdown, .ud__select-dropdown, .ud__cascader__dropdown,
     .ud__toast, .ud__message__notice, .ud__notification__notice, [role="menu"],
-    /* Messenger's own menus are not UD components: the right-click menu on
-       a chat and the "+" (new group, new doc, ...) menu. */
+    /* Messenger's own right-click and "+" menus. */
     .larkc-contextMenu-wrapper, .quick-jump-menu
 ) {
     background: color-mix(in srgb, var(--bg-float, #fff) 72%, transparent) !important;
@@ -704,11 +653,8 @@ html.fml :is(
     corner-shape: squircle;
     box-shadow: var(--fml-glass-edge), var(--fml-glass-shadow) !important;
 }
-/* Tooltips have white text on a dark panel (--bg-tips), in both themes, so
-   their glass is a dark tint. The light tint above made the text invisible.
-   UD nests a .ud__tooltip-content inside .ud__tooltip__content, so only the
-   outer panel gets the glass and the inner one stays clear; otherwise the
-   two layers stack and the tint doubles. */
+/* Tooltips have white text, so their glass is a dark tint. UD nests two
+   tooltip panels; only the outer one gets glass so the tint does not double. */
 html.fml :is(.ud__tooltip__content, .ud__tooltip-inner, [role="tooltip"]) {
     background: color-mix(in srgb, var(--bg-tips, #1f2329) 78%, transparent) !important;
     -webkit-backdrop-filter: var(--fml-glass-filter) !important;
@@ -807,8 +753,7 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
 }
 `;
 
-    // At document-start some managers run before <html> exists. Wait for it
-    // with a one-shot observer on the document itself.
+    // Some managers run before <html> exists; wait for it.
     const whenRoot = (fn) => {
         if (document.documentElement) { fn(); return; }
         const wait = new MutationObserver(() => {
@@ -825,19 +770,12 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     whenRoot(() => (document.head || document.documentElement).appendChild(style));
 
     // ---------------------------------------------------------------------
-    // Palette for the rest of Feishu's tokens. Besides the core tokens set
-    // in the CSS, Feishu has about 13,000 tokens on :root in families such
-    // as --imtoken-*, --udtoken-* and --vctoken-*, about 440 of them grays
-    // for surfaces, text and lines. Listing them by hand would break each
-    // time Feishu adds one, so the grays are remapped from Feishu's own
-    // stylesheet once it loads: each gray goes to the palette colour at the
-    // same lightness, and keeps its alpha. Real colours (blue, red, green
-    // and so on) stay, as do fixed colours such as white text on buttons.
-    // The result goes in a style element placed before the main one, so the
-    // hand-picked core tokens in the CSS still win.
+    // The other tokens. Feishu has about 13,000 tokens on :root, about 440
+    // of them grays. Once its token sheet loads, each gray is remapped to the
+    // palette colour at the same lightness (alpha kept); real colours stay.
+    // The result goes before the main style, so the core tokens above win.
     // ---------------------------------------------------------------------
-    // Lightness stops: a Feishu gray at lightness l becomes the colour
-    // between the two stops around l.
+    // Lightness stops; a gray between two stops is interpolated.
     const RAMPS = {
         light: [[0, '#001f27'], [0.14, '#073642'], [0.22, '#2c4b53'], [0.35, '#586e75'],
             [0.45, '#657b83'], [0.6, '#93a1a1'], [0.76, '#b3b8ae'], [0.84, '#d2cbb5'],
@@ -882,17 +820,24 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     };
     const tokenStyle = document.createElement('style');
     tokenStyle.id = 'fml-tokens';
+    // Feishu has about 80 stylesheets. Each is read once, cross-origin ones
+    // (SecurityError) are not retried, and the work stops when the token
+    // sheet is found. Other errors mean the sheet is still loading.
     const done = new WeakSet();
+    let tokensFound = false;
     const buildTokens = () => {
+        if (tokensFound) return;
         for (const sheet of document.styleSheets) {
             if (done.has(sheet)) continue;
             let rules;
-            try { rules = sheet.cssRules; } catch { continue; } // cross-origin, no CORS
+            try { rules = sheet.cssRules; } catch (e) {
+                if (e.name === 'SecurityError') done.add(sheet);
+                continue;
+            }
             done.add(sheet);
             let css = '';
             for (const rule of rules) {
-                // Feishu's token sheet: :root with thousands of properties,
-                // and the same :root again inside prefers-color-scheme: dark.
+                // The token sheet: a huge :root, and again inside a dark query.
                 if (rule.selectorText === ':root' && rule.style.length > 500) {
                     css += `html.fml, html.fml body {\n${remap(rule, RAMPS.light)}\n}\n`;
                 } else if (rule.media && /dark/.test(rule.media.mediaText)) {
@@ -906,48 +851,48 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
             if (css) {
                 tokenStyle.textContent += css;
                 if (!tokenStyle.isConnected && style.parentNode) style.parentNode.insertBefore(tokenStyle, style);
+                tokensFound = true;
+                document.removeEventListener('load', onLinkLoad, true);
+                return;
             }
         }
     };
-    // The token sheet is a <link> in the HTML. Load events do not bubble,
-    // so listen in the capture phase for any stylesheet that finishes.
-    document.addEventListener('load', (e) => {
+    // Load events do not bubble, so listen in the capture phase.
+    const onLinkLoad = (e) => {
         if (e.target.tagName === 'LINK' && onMessenger()) buildTokens();
-    }, true);
+    };
+    document.addEventListener('load', onLinkLoad, true);
     document.addEventListener('DOMContentLoaded', () => { if (onMessenger()) buildTokens(); }, { once: true });
-    // A manager that injects late (after the HTML is parsed) misses the
-    // events above, so build from what is already loaded.
+    // A manager that injects after the HTML is parsed misses those events.
     if (document.readyState !== 'loading' && onMessenger()) whenRoot(buildTokens);
 
     // ---------------------------------------------------------------------
-    // "Download Feishu". Where the entry has only visible text and no label
-    // or link the CSS can match, find it by its text and hide the whole entry
-    // (icon and label) by climbing to the largest ancestor whose text is
-    // still just that label.
-    //
-    // This is the only script that runs after load. Added nodes are queued
-    // and checked once per animation frame, and a subtree is walked only when
-    // its text contains the label, so typing and scrolling stay cheap.
+    // "Download Feishu" entries that the CSS cannot match: find them by their
+    // text and hide the largest ancestor whose text is still just the label.
+    // Added nodes are checked once per frame. Messages and the message box
+    // are skipped: they are most of the mutations, and a message that says
+    // "下载飞书" must stay visible.
     // ---------------------------------------------------------------------
     const LABEL = /^(?:下载飞书(?:客户端|桌面端|App)?|下載飛書(?:客戶端|桌面端|App)?|Download (?:Feishu|Lark)(?: (?:app|desktop|client))?|(?:Feishu|Lark)\s*(?:を)?ダウンロード)$/i;
     const HINT = /下载飞书|下載飛書|Download (?:Feishu|Lark)|(?:Feishu|Lark)\s*を?ダウンロード/i;
     const STOP = new Set(['BODY', 'HTML', 'NAV', 'ASIDE', 'HEADER', 'MAIN', 'UL', 'OL']);
+    const SKIP = '.chatMainContent, [contenteditable="true"]';
 
     const hidden = new Set();
     const hideEntry = (textNode) => {
         let el = textNode.parentElement;
-        if (!el || el.closest('[contenteditable="true"]')) return;
+        if (!el || el.closest(SKIP)) return;
         const label = el.textContent.trim();
-        // Stay within five levels so a label that sits alone in a big,
-        // otherwise empty wrapper never takes the wrapper with it.
+        // Climb to take the entry's icon too, but stop at a parent that holds
+        // anything more than a small icon. The sidebar's account entry has
+        // no text, so a text test alone would hide it with the download entry.
         for (let i = 0; i < 5; i++) {
             const up = el.parentElement;
             if (!up || STOP.has(up.tagName) || up.textContent.trim() !== label) break;
+            if ([...up.children].some((c) => c !== el && c.getElementsByTagName('*').length > 3)) break;
             el = up;
         }
-        // The class is for the stylesheet. React can rewrite className on
-        // the next render, but it only touches the style properties it
-        // manages, so the inline display keeps the entry hidden.
+        // React can rewrite className but keeps unmanaged inline styles.
         el.classList.add('fml-hidden');
         el.style.setProperty('display', 'none', 'important');
         hidden.add(el);
@@ -968,7 +913,7 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
         const roots = pending;
         pending = [];
         if (!onMessenger()) return;
-        for (const root of roots) if (root.isConnected) scan(root);
+        for (const root of roots) if (root.isConnected && !root.closest(SKIP)) scan(root);
     };
     const observer = new MutationObserver((records) => {
         for (const rec of records) {
@@ -981,8 +926,7 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     });
 
     // ---------------------------------------------------------------------
-    // Route tracking. The theme class and the observer are on only while the
-    // app shows /next/messenger.
+    // Route tracking: the theme and the observer are on only on /next/messenger.
     // ---------------------------------------------------------------------
     let active = false;
     const sync = () => {
@@ -996,8 +940,7 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
         } else {
             observer.disconnect();
             pending = [];
-            // The sidebar stays on screen in Docs, Calendar and the rest, so
-            // give the entry back there.
+            // The sidebar stays in Docs, Calendar and the rest; restore it.
             for (const el of hidden) {
                 el.classList.remove('fml-hidden');
                 el.style.removeProperty('display');
