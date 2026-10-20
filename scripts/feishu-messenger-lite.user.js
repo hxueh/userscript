@@ -2,9 +2,9 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.2.0
-// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Tokyo Night by night. Blocks the Tea/Rangers analytics, Slardar monitoring and ad trackers, and removes "Download Feishu". Switches with Feishu's own light and dark theme.
-// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Tokyo Night 配色。拦截 Tea/Rangers 统计、Slardar 监控和广告追踪，并移除“下载飞书”。跟随飞书自身的浅色与深色主题。
+// @version      0.2.1
+// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Tokyo Night by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Switches with Feishu's own light and dark theme.
+// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Tokyo Night 配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -33,8 +33,8 @@
     // patching the page's own fetch, XHR, sendBeacon and script loading
     // affects every caller.
     //
-    // Only telemetry is blocked. The IM gateway, the frontier WebSocket, the
-    // passport heartbeat and the file and image CDNs all stay.
+    // Block telemetry and the Security Policy SDK. The IM gateway, the
+    // frontier WebSocket, passport heartbeat and file and image CDNs stay.
     // ---------------------------------------------------------------------
     const BLOCKED_URL = new RegExp([
         // Tea / Rangers, ByteDance's event analytics: the collectors on
@@ -53,6 +53,10 @@
         // The ByteDance accessibility-testing entry, which loads its own
         // tooling and reporting. Readers and keyboard use do not need it.
         '/accessibility-task-platform/',
+        // Feishu loads policy-sdk-<version>.js from lmp/scs (currently with
+        // a double slash). Match this SDK path, not general policy APIs,
+        // so the login and message endpoints keep their normal behaviour.
+        '/lmp/scs/+policy-sdk(?:-[0-9][0-9A-Za-z._-]*)?\\.js(?:[?#]|$)',
         // Third-party marketing tags.
         '//www\\.googletagmanager\\.com/', '//(?:www|ssl)\\.google-analytics\\.com/',
         '//(?:px\\.ads|snap)\\.licdn\\.com/', '//px\\.ads\\.linkedin\\.com/', '//hm\\.baidu\\.com/',
