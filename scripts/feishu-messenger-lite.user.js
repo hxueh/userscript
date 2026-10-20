@@ -2,9 +2,9 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.3.1
-// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and GitHub Dark by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Switches with Feishu's own light and dark theme.
-// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 GitHub Dark 配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。跟随飞书自身的浅色与深色主题。
+// @version      0.3.2
+// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Switches with Feishu's own light and dark theme.
+// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -151,7 +151,7 @@
     // ---------------------------------------------------------------------
     // Theme. Feishu's Universe Design (UD) components have stable ud__* class
     // names and read colours from tokens such as --bg-body. The theme styles
-    // those classes and redefines those tokens (Solarized Light, GitHub Dark),
+    // those classes and redefines those tokens (Solarized Light, Apple dark mode),
     // so it follows Feishu's own light and dark switch.
     //
     // Speed: it is plain CSS under html.fml, so no script runs while you
@@ -342,173 +342,176 @@ html.fml, html.fml body {
 }
 @media (prefers-color-scheme: dark) {
     html.fml, html.fml body {
-        /* GitHub Dark (Primer dark palette). */
-        --fml-blue: #58a6ff;
-        --fml-green: #3fb950;
-        --fml-red: #f85149;
-        --N00: #010409;
-        --N50: #0d1117;
-        --N100: #161b22;
-        --N200: #21262d;
-        --N300: #30363d;
-        --N350: #3d444d;
-        --N400: #484f58;
-        --N500: #6e7681;
-        --N600: #8b949e;
-        --N650: #9198a1;
-        --N700: #b1bac4;
-        --N800: #c9d1d9;
-        --N900: #e6edf3;
-        --N950: #f0f6fc;
+        /* Apple dark mode (iOS and macOS system colours), with secondary
+           text raised from #98989f to #c7c7cc so previews stay readable.
+           Links use the lighter #409cff (6:1 on #1c1c1e), and filled buttons
+           use Apple's web blue #0071e3, because white on #0a84ff is 3.6:1. */
+        --fml-blue: #0a84ff;
+        --fml-green: #30d158;
+        --fml-red: #ff453a;
+        --N00: #000000;
+        --N50: #1c1c1e;
+        --N100: #2c2c2e;
+        --N200: #3a3a3c;
+        --N300: #48484a;
+        --N350: #545458;
+        --N400: #636366;
+        --N500: #8e8e93;
+        --N600: #aeaeb2;
+        --N650: #c7c7cc;
+        --N700: #d1d1d6;
+        --N800: #e5e5ea;
+        --N900: #f2f2f7;
+        --N950: #f9f9fb;
         --N1000: #ffffff;
-        --B50: #111d2e;
-        --primary-pri-50: #111d2e;
-        --primary-pri-50-raw: 17,29,46;
-        --B100: #14253c;
-        --primary-pri-100: #14253c;
-        --primary-pri-100-raw: 20,37,60;
-        --B200: #193357;
-        --primary-pri-200: #193357;
-        --primary-pri-200-raw: 25,51,87;
-        --B300: #1f4478;
-        --primary-pri-300: #1f4478;
-        --primary-pri-300-raw: 31,68,120;
-        --B350: #255598;
-        --primary-pri-350: #255598;
-        --primary-pri-350-raw: 37,85,152;
-        --B400: #2d6cc4;
-        --primary-pri-400: #2d6cc4;
-        --primary-pri-400-raw: 45,108,196;
-        --B500: #58a6ff;
-        --primary-pri-500: #58a6ff;
-        --primary-pri-500-raw: 88,166,255;
-        --B600: #6cb6ff;
-        --primary-pri-600: #6cb6ff;
-        --primary-pri-600-raw: 108,182,255;
-        --B700: #79c0ff;
-        --primary-pri-700: #79c0ff;
-        --primary-pri-700-raw: 121,192,255;
-        --B800: #96d0ff;
-        --primary-pri-800: #96d0ff;
-        --primary-pri-800-raw: 150,208,255;
-        --B900: #a5d6ff;
-        --primary-pri-900: #a5d6ff;
-        --primary-pri-900-raw: 165,214,255;
-        --primary-content-default: #58a6ff;
-        --primary-content-default-raw: 88,166,255;
-        --primary-content-hover: #79c0ff;
-        --primary-content-hover-raw: 121,192,255;
-        --primary-content-pressed: #388bfd;
-        --primary-content-pressed-raw: 56,139,253;
-        --primary-content-loading: #1f4478;
-        --primary-content-loading-raw: 31,68,120;
-        --primary-fill-default: #1f6feb;
-        --primary-fill-default-raw: 31,111,235;
-        --primary-fill-hover: #388bfd;
-        --primary-fill-hover-raw: 56,139,253;
-        --primary-fill-pressed: #1158c7;
-        --primary-fill-pressed-raw: 17,88,199;
-        --primary-fill-loading: #1f4478;
-        --primary-fill-loading-raw: 31,68,120;
-        --primary-fill-solid-01: #111d2e;
-        --primary-fill-solid-01-raw: 17,29,46;
-        --primary-fill-solid-02: #14253c;
-        --primary-fill-solid-02-raw: 20,37,60;
-        --primary-fill-solid-03: #193357;
-        --primary-fill-solid-03-raw: 25,51,87;
-        --primary-fill-transparent-01: rgba(56, 139, 253, 0.15);
-        --primary-fill-transparent-01-raw: 56,139,253;
-        --primary-fill-transparent-02: rgba(56, 139, 253, 0.2);
-        --primary-fill-transparent-02-raw: 56,139,253;
-        --primary-fill-transparent-03: rgba(56, 139, 253, 0.3);
-        --primary-fill-transparent-03-raw: 56,139,253;
+        --B50: #1a2634;
+        --primary-pri-50: #1a2634;
+        --primary-pri-50-raw: 26,38,52;
+        --B100: #192d42;
+        --primary-pri-100: #192d42;
+        --primary-pri-100-raw: 25,45,66;
+        --B200: #17395d;
+        --primary-pri-200: #17395d;
+        --primary-pri-200-raw: 23,57,93;
+        --B300: #14487c;
+        --primary-pri-300: #14487c;
+        --primary-pri-300-raw: 20,72,124;
+        --B350: #12569c;
+        --primary-pri-350: #12569c;
+        --primary-pri-350-raw: 18,86,156;
+        --B400: #0e6ac7;
+        --primary-pri-400: #0e6ac7;
+        --primary-pri-400-raw: 14,106,199;
+        --B500: #0a84ff;
+        --primary-pri-500: #0a84ff;
+        --primary-pri-500-raw: 10,132,255;
+        --B600: #409cff;
+        --primary-pri-600: #409cff;
+        --primary-pri-600-raw: 64,156,255;
+        --B700: #64b0ff;
+        --primary-pri-700: #64b0ff;
+        --primary-pri-700-raw: 100,176,255;
+        --B800: #8cc4ff;
+        --primary-pri-800: #8cc4ff;
+        --primary-pri-800-raw: 140,196,255;
+        --B900: #b3d8ff;
+        --primary-pri-900: #b3d8ff;
+        --primary-pri-900-raw: 179,216,255;
+        --primary-content-default: #409cff;
+        --primary-content-default-raw: 64,156,255;
+        --primary-content-hover: #64b0ff;
+        --primary-content-hover-raw: 100,176,255;
+        --primary-content-pressed: #0a84ff;
+        --primary-content-pressed-raw: 10,132,255;
+        --primary-content-loading: #14487c;
+        --primary-content-loading-raw: 20,72,124;
+        --primary-fill-default: #0071e3;
+        --primary-fill-default-raw: 0,113,227;
+        --primary-fill-hover: #0a84ff;
+        --primary-fill-hover-raw: 10,132,255;
+        --primary-fill-pressed: #0062c4;
+        --primary-fill-pressed-raw: 0,98,196;
+        --primary-fill-loading: #14487c;
+        --primary-fill-loading-raw: 20,72,124;
+        --primary-fill-solid-01: #1a2634;
+        --primary-fill-solid-01-raw: 26,38,52;
+        --primary-fill-solid-02: #192d42;
+        --primary-fill-solid-02-raw: 25,45,66;
+        --primary-fill-solid-03: #17395d;
+        --primary-fill-solid-03-raw: 23,57,93;
+        --primary-fill-transparent-01: rgba(10, 132, 255, 0.15);
+        --primary-fill-transparent-01-raw: 10,132,255;
+        --primary-fill-transparent-02: rgba(10, 132, 255, 0.2);
+        --primary-fill-transparent-02-raw: 10,132,255;
+        --primary-fill-transparent-03: rgba(10, 132, 255, 0.3);
+        --primary-fill-transparent-03-raw: 10,132,255;
         --primary-on-primary-fill: #ffffff;
         --primary-on-primary-fill-raw: 255,255,255;
-        --bg-pricolor: #1f6feb;
-        --bg-pricolor-raw: 31,111,235;
-        --text-link-normal: #58a6ff;
-        --text-link-normal-raw: 88,166,255;
-        --text-link-hover: #79c0ff;
-        --text-link-hover-raw: 121,192,255;
-        --text-link-pressed: #388bfd;
-        --text-link-pressed-raw: 56,139,253;
-        --text-link-loading: #1f4478;
-        --text-link-loading-raw: 31,68,120;
-        --fill-active: rgba(56, 139, 253, 0.2);
-        --fill-active-raw: 56,139,253;
-        --fill-selected: rgba(56, 139, 253, 0.15);
-        --fill-selected-raw: 56,139,253;
-        --bg-text-selection: rgba(56, 139, 253, 0.3);
-        --bg-text-selection-raw: 56,139,253;
-        --bg-body: #0d1117;
-        --bg-body-raw: 13,17,23;
-        --bg-base: #010409;
-        --bg-base-raw: 1,4,9;
-        --bg-body-overlay: #161b22;
-        --bg-body-overlay-raw: 22,27,34;
-        --bg-content-base: #0d1117;
-        --bg-content-base-raw: 13,17,23;
-        --bg-filler: #21262d;
-        --bg-filler-raw: 33,38,45;
-        --bg-float: #161b22;
-        --bg-float-raw: 22,27,34;
-        --bg-float-base: #0d1117;
-        --bg-float-base-raw: 13,17,23;
-        --bg-float-overlay: #21262d;
-        --bg-float-overlay-raw: 33,38,45;
-        --bg-sub-navigation: #161b22;
-        --bg-sub-navigation-raw: 22,27,34;
-        --bg-tips: #3d444d;
-        --bg-tips-raw: 61,68,77;
-        --text-title: #e6edf3;
-        --text-title-raw: 230,237,243;
-        --text-caption: #9198a1;
-        --text-caption-raw: 145,152,161;
-        --text-placeholder: #6e7681;
-        --text-placeholder-raw: 110,118,129;
-        --text-disabled: #484f58;
-        --text-disabled-raw: 72,79,88;
-        --text-link-disabled: #484f58;
-        --text-link-disabled-raw: 72,79,88;
-        --icon-n1: #e6edf3;
-        --icon-n1-raw: 230,237,243;
-        --icon-n2: #9198a1;
-        --icon-n2-raw: 145,152,161;
-        --icon-n3: #6e7681;
-        --icon-n3-raw: 110,118,129;
-        --icon-disabled: #484f58;
-        --icon-disabled-raw: 72,79,88;
-        --fill-disabled: #30363d;
-        --fill-disabled-raw: 48,54,61;
-        --line-border-component: #3d444d;
-        --line-border-component-raw: 61,68,77;
-        --line-divider-module: #010409;
-        --line-divider-module-raw: 1,4,9;
-        --bg-float-push: rgba(22, 27, 34, 0.8);
-        --bg-float-push-raw: 22,27,34;
-        --fill-hover: rgba(177, 186, 196, 0.08);
-        --fill-hover-raw: 177,186,196;
-        --fill-focus: rgba(177, 186, 196, 0.12);
-        --fill-focus-raw: 177,186,196;
-        --fill-pressed: rgba(177, 186, 196, 0.12);
-        --fill-pressed-raw: 177,186,196;
-        --fill-tag: rgba(177, 186, 196, 0.1);
-        --fill-tag-raw: 177,186,196;
-        --line-border-card: rgba(240, 246, 252, 0.1);
-        --line-border-card-raw: 240,246,252;
-        --line-divider-default: rgba(240, 246, 252, 0.1);
-        --line-divider-default-raw: 240,246,252;
-        --fill-loading-mask: rgba(1, 4, 9, 0.6);
-        --fill-loading-mask-raw: 1,4,9;
-        --fml-glass-edge: inset 0 .5px 0 rgba(240, 246, 252, .14), inset 0 0 0 .5px rgba(240, 246, 252, .08);
-        --fml-glass-shadow: 0 12px 36px rgba(1, 4, 9, .55), 0 2px 6px rgba(1, 4, 9, .3);
-        --fml-panel-shadow: 0 8px 28px rgba(1, 4, 9, .45), 0 1px 3px rgba(1, 4, 9, .3);
-        /* Blue, purple and green glows on the GitHub Dark canvas. */
+        --bg-pricolor: #0071e3;
+        --bg-pricolor-raw: 0,113,227;
+        --text-link-normal: #409cff;
+        --text-link-normal-raw: 64,156,255;
+        --text-link-hover: #64b0ff;
+        --text-link-hover-raw: 100,176,255;
+        --text-link-pressed: #0a84ff;
+        --text-link-pressed-raw: 10,132,255;
+        --text-link-loading: #14487c;
+        --text-link-loading-raw: 20,72,124;
+        --fill-active: rgba(10, 132, 255, 0.24);
+        --fill-active-raw: 10,132,255;
+        --fill-selected: rgba(10, 132, 255, 0.18);
+        --fill-selected-raw: 10,132,255;
+        --bg-text-selection: rgba(10, 132, 255, 0.35);
+        --bg-text-selection-raw: 10,132,255;
+        --bg-body: #1c1c1e;
+        --bg-body-raw: 28,28,30;
+        --bg-base: #111113;
+        --bg-base-raw: 17,17,19;
+        --bg-body-overlay: #2c2c2e;
+        --bg-body-overlay-raw: 44,44,46;
+        --bg-content-base: #1c1c1e;
+        --bg-content-base-raw: 28,28,30;
+        --bg-filler: #2c2c2e;
+        --bg-filler-raw: 44,44,46;
+        --bg-float: #2c2c2e;
+        --bg-float-raw: 44,44,46;
+        --bg-float-base: #1c1c1e;
+        --bg-float-base-raw: 28,28,30;
+        --bg-float-overlay: #3a3a3c;
+        --bg-float-overlay-raw: 58,58,60;
+        --bg-sub-navigation: #242426;
+        --bg-sub-navigation-raw: 36,36,38;
+        --bg-tips: #3a3a3c;
+        --bg-tips-raw: 58,58,60;
+        --text-title: #ffffff;
+        --text-title-raw: 255,255,255;
+        --text-caption: #c7c7cc;
+        --text-caption-raw: 199,199,204;
+        --text-placeholder: #8e8e93;
+        --text-placeholder-raw: 142,142,147;
+        --text-disabled: #636366;
+        --text-disabled-raw: 99,99,102;
+        --text-link-disabled: #636366;
+        --text-link-disabled-raw: 99,99,102;
+        --icon-n1: #f2f2f7;
+        --icon-n1-raw: 242,242,247;
+        --icon-n2: #c7c7cc;
+        --icon-n2-raw: 199,199,204;
+        --icon-n3: #8e8e93;
+        --icon-n3-raw: 142,142,147;
+        --icon-disabled: #636366;
+        --icon-disabled-raw: 99,99,102;
+        --fill-disabled: #3a3a3c;
+        --fill-disabled-raw: 58,58,60;
+        --line-border-component: #48484a;
+        --line-border-component-raw: 72,72,74;
+        --line-divider-module: #111113;
+        --line-divider-module-raw: 17,17,19;
+        --bg-float-push: rgba(44, 44, 46, 0.8);
+        --bg-float-push-raw: 44,44,46;
+        --fill-hover: rgba(235, 235, 245, 0.08);
+        --fill-hover-raw: 235,235,245;
+        --fill-focus: rgba(235, 235, 245, 0.12);
+        --fill-focus-raw: 235,235,245;
+        --fill-pressed: rgba(235, 235, 245, 0.14);
+        --fill-pressed-raw: 235,235,245;
+        --fill-tag: rgba(235, 235, 245, 0.1);
+        --fill-tag-raw: 235,235,245;
+        --line-border-card: rgba(255, 255, 255, 0.1);
+        --line-border-card-raw: 255,255,255;
+        --line-divider-default: rgba(84, 84, 88, 0.65);
+        --line-divider-default-raw: 84,84,88;
+        --fill-loading-mask: rgba(0, 0, 0, 0.6);
+        --fill-loading-mask-raw: 0,0,0;
+        --fml-glass-edge: inset 0 .5px 0 rgba(255, 255, 255, .16), inset 0 0 0 .5px rgba(255, 255, 255, .08);
+        --fml-glass-shadow: 0 12px 36px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .3);
+        --fml-panel-shadow: 0 8px 28px rgba(0, 0, 0, .4), 0 1px 3px rgba(0, 0, 0, .3);
+        /* System blue, purple and teal glows on a near-black desktop. */
         --fml-wallpaper:
-            radial-gradient(70vw 60vh at 0% 0%, rgba(56, 139, 253, .2), transparent 70%),
-            radial-gradient(60vw 60vh at 100% 100%, rgba(163, 113, 247, .15), transparent 70%),
-            radial-gradient(50vw 50vh at 85% 5%, rgba(63, 185, 80, .08), transparent 70%),
-            #0d1117;
+            radial-gradient(70vw 60vh at 0% 0%, rgba(10, 132, 255, .2), transparent 70%),
+            radial-gradient(60vw 60vh at 100% 100%, rgba(191, 90, 242, .15), transparent 70%),
+            radial-gradient(50vw 50vh at 85% 5%, rgba(100, 210, 255, .08), transparent 70%),
+            #111113;
     }
 }
 
@@ -803,10 +806,10 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
         light: [[0, '#001f27'], [0.14, '#073642'], [0.22, '#2c4b53'], [0.35, '#586e75'],
             [0.45, '#657b83'], [0.6, '#93a1a1'], [0.76, '#b3b8ae'], [0.84, '#d2cbb5'],
             [0.9, '#e4ddc8'], [0.95, '#eee8d5'], [0.97, '#f6efdb'], [1, '#fdf6e3']],
-        dark: [[0, '#010409'], [0.04, '#05080d'], [0.08, '#0a0e14'], [0.1, '#0d1117'],
-            [0.16, '#161b22'], [0.22, '#21262d'], [0.26, '#262c36'], [0.31, '#30363d'],
-            [0.37, '#3d444d'], [0.46, '#484f58'], [0.55, '#6e7681'], [0.65, '#9198a1'],
-            [0.82, '#b1bac4'], [0.92, '#e6edf3'], [1, '#f0f6fc']],
+        dark: [[0, '#000000'], [0.04, '#0a0a0b'], [0.08, '#141416'], [0.1, '#1c1c1e'],
+            [0.16, '#242426'], [0.22, '#2c2c2e'], [0.26, '#3a3a3c'], [0.31, '#48484a'],
+            [0.37, '#545458'], [0.46, '#636366'], [0.55, '#8e8e93'], [0.65, '#aeaeb2'],
+            [0.82, '#c7c7cc'], [0.92, '#f2f2f7'], [1, '#ffffff']],
     };
     const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
     const rampAt = (ramp, l) => {
