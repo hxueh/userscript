@@ -2,9 +2,9 @@
 // @name         Feishu Lite Blocker
 // @name:zh-CN   飞书精简拦截库
 // @namespace    https://github.com/hxueh
-// @version      1.1.0
-// @description  Library for the Feishu Lite userscripts. Blocks Tea/Rangers analytics, Slardar monitoring, accessibility-testing tooling, the Security Policy SDK and third-party marketing tags on Feishu pages before they load, and turns their globals into harmless stubs. Load it with @require and @run-at document-start, then call FeishuLiteBlocker.install().
-// @description:zh-CN 飞书精简系列用户脚本的公共库。在飞书页面加载前拦截 Tea/Rangers 统计、Slardar 监控、无障碍测试工具、Security Policy SDK 和第三方营销代码，并把它们的全局对象替换为无害的空实现。用 @require 引入并以 @run-at document-start 运行，然后调用 FeishuLiteBlocker.install()。
+// @version      1.2.0
+// @description  Library for the Feishu Lite userscripts. Blocks Tea/Rangers analytics, Slardar monitoring, accessibility-testing tooling, the Security Policy SDK, audit event uploads, compliance pings and third-party marketing tags on Feishu pages before they load, turns their globals into harmless stubs, and hides page watermarks. Load it with @require and @run-at document-start, then call FeishuLiteBlocker.install().
+// @description:zh-CN 飞书精简系列用户脚本的公共库。在飞书页面加载前拦截 Tea/Rangers 统计、Slardar 监控、无障碍测试工具、Security Policy SDK、审计事件上报、合规心跳和第三方营销代码，把它们的全局对象替换为无害的空实现，并隐藏页面水印。用 @require 引入并以 @run-at document-start 运行，然后调用 FeishuLiteBlocker.install()。
 // @author       hxueh
 // @license      MIT
 // ==/UserScript==
@@ -28,8 +28,9 @@ var FeishuLiteBlocker = (function () {
     'use strict';
 
     // Share all rules from Messenger Lite 0.8.1 so each consumer blocks the
-    // same optional scripts. The IM gateway, WebSocket, passport, file CDNs,
-    // policy APIs, watermark and audit reporter are not in this list.
+    // same optional scripts. The IM gateway, WebSocket, passport, file CDNs
+    // and general policy APIs are not in this list. Watermarks are
+    // hidden with CSS below because they can use inline image data.
     const BASE_PATTERNS = [
         // Tea / Rangers analytics: event uploads, SDK settings, web ID, plugins.
         '//mcs(?:-[a-z0-9-]+)?\\.(?:feishu\\.cn|larksuite\\.com|zijieapi\\.com)/',
@@ -44,6 +45,18 @@ var FeishuLiteBlocker = (function () {
         // Match only the SDK file, including its double-slash path. Policy
         // APIs used by login and messaging must still reach the server.
         '/lmp/scs/+policy-sdk(?:-[0-9][0-9A-Za-z._-]*)?\\.js(?:[?#]|$)',
+        // The browser loads these reporting chunks separately. Do not match
+        // every Policy SDK chunk: session refresh also uses that filename.
+        '/lmp/scs/+(?:lmp-sdk-report|logger)\\.policy-sdk-[0-9][0-9A-Za-z._-]*\\.js(?:[?#]|$)',
+        // Observed in Feishu Docs and confirmed in its Policy SDK. Include
+        // the tenant probe, but keep other compliance and login APIs available.
+        '/lark/scs/compliance/ping(?:_tenant_restriction)?/?(?:[?#]|$)',
+        // The audit SDK also lives in a shared vendor bundle. Stop its upload
+        // endpoint instead of blocking that bundle and breaking document code.
+        '/suite/security/audit/client_events/create/?(?:[?#]|$)',
+        // The same SDK falls back to this older endpoint when the audit
+        // service domain is absent, so cover both upload methods.
+        '/suite/admin/security/events/?(?:[?#]|$)',
         // Third-party marketing tags.
         '//www\\.googletagmanager\\.com/', '//(?:www|ssl)\\.google-analytics\\.com/',
         '//(?:px\\.ads|snap)\\.licdn\\.com/', '//px\\.ads\\.linkedin\\.com/', '//hm\\.baidu\\.com/',
@@ -97,7 +110,69 @@ var FeishuLiteBlocker = (function () {
     const LOADER_GLOBAL = /['"]([A-Za-z_$][\w$]*)['"]\s*\)\s*;?\s*$/;
     const isSlardarLoader = (text) => text.includes('precollect') && SLARDAR_LOADER.test(text);
 
+    // Selectors based on C3604's MIT-licensed watermark script, supplied by
+    // the user: https://greasyfork.org/scripts/537395 . Keep the nodes in the
+    // DOM so the app can still update them. CSS also covers later overlays
+    // without observing every DOM change. Do not hide ordinary document images.
+    const WATERMARK_CSS = `
+.suite-clear[style*='background-image: url("'],
+.suite-clear[style*='data:image/png;base64'],
+.ssrWaterMark,
+div[style*='position: fixed'][style*='pointer-events: none'][style*='height: 100%'][style*='width: 100%'][style*='background-image: url("data:image/png;base64,'],
+div[style*='position: fixed'][style*='pointer-events: none'][style*='height: 100%'][style*='width: 100%'][style*='background-repeat: repeat;'] {
+    transform: scale(0) !important;
+    height: 1px !important;
+    width: 1px !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}`;
+    const syncWatermarks = () => {
+        const root = document.documentElement;
+        if (!root) return;
+        // document.open() removes the old style. Recreate it on the next
+        // install, using the same shared state to avoid duplicate styles.
+        if (!state.watermarkStyle?.isConnected) {
+            const style = document.createElement('style');
+            style.textContent = WATERMARK_CSS;
+            state.watermarkStyle = style;
+            root.appendChild(style);
+        }
+        // Use the same route checks as the request blocker. When Messenger
+        // navigates to another app, its watermark becomes visible again.
+        state.watermarkStyle.media = state.rules.some((rule) => rule.when()) ? 'all' : 'not all';
+    };
+    const installWatermarks = () => {
+        syncWatermarks();
+        // At document-start the parser may not have created <html> yet.
+        // Observe only until it exists; CSS handles later watermark updates.
+        if (!document.documentElement && !state.watermarkWait) {
+            state.watermarkWait = new MutationObserver(() => {
+                if (!document.documentElement) return;
+                state.watermarkWait.disconnect();
+                state.watermarkWait = null;
+                syncWatermarks();
+            });
+            state.watermarkWait.observe(document, { childList: true });
+        }
+        // document.open() can clear window listeners, so restore this one
+        // on each install. Remove the prior callback when another copy loads.
+        if (state.watermarkPopstate) window.removeEventListener('popstate', state.watermarkPopstate);
+        state.watermarkPopstate = syncWatermarks;
+        window.addEventListener('popstate', state.watermarkPopstate);
+    };
+
     const patch = () => {
+        // Feishu changes routes without a page load. Update the CSS after
+        // the URL changes, and preserve the history method's return value.
+        for (const method of ['pushState', 'replaceState']) {
+            const native = history[method];
+            history[method] = function () {
+                const result = native.apply(this, arguments);
+                syncWatermarks();
+                return result;
+            };
+        }
         // A blocked beacon reports success so the caller moves on.
         if (navigator.sendBeacon) {
             const beacon = navigator.sendBeacon.bind(navigator);
@@ -196,6 +271,7 @@ var FeishuLiteBlocker = (function () {
             patch();
         }
         if (document.readyState === 'loading') guardParser();
+        installWatermarks();
         // Stubs for globals that inline snippets call, so they do not throw.
         const noop = () => {};
         for (const name of ['gtag', 'ga', 'collectEvent', 'lintrk', ...stubs]) {

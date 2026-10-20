@@ -2,9 +2,9 @@
 // @name         Feishu Docs Lite
 // @name:zh-CN   飞书文档精简
 // @namespace    https://github.com/hxueh
-// @version      0.1.2
-// @description  Makes Feishu Docs lighter and calmer, starting with the Wiki (/wiki and /wiki/*). Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers, accessibility-testing tooling and the Security Policy SDK before they load, and stops their global error and long-task observers. Recolours the whole app with Solarized Light by day and Apple dark mode by night, following the system theme, and uses the system font. Your company's watermark and audit features are not changed.
-// @description:zh-CN 让飞书文档更轻、更安静，先支持知识库（/wiki 与 /wiki/*）。在加载前拦截 Tea/Rangers 统计、Slardar 监控、广告追踪、无障碍测试工具和 Security Policy SDK，并停止它们的全局错误与长任务监听。跟随系统主题，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色，并使用系统字体。不改动企业水印和审计功能。
+// @version      0.1.3
+// @description  Makes Feishu Docs lighter and calmer, starting with the Wiki (/wiki and /wiki/*). Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers, accessibility-testing tooling and the Security Policy SDK before they load, and stops their global error and long-task observers. Recolours the whole app with Solarized Light by day and Apple dark mode by night, following the system theme, and uses the system font. Hides page watermarks and blocks audit event uploads and compliance pings.
+// @description:zh-CN 让飞书文档更轻、更安静，先支持知识库（/wiki 与 /wiki/*）。在加载前拦截 Tea/Rangers 统计、Slardar 监控、广告追踪、无障碍测试工具和 Security Policy SDK，并停止它们的全局错误与长任务监听。跟随系统主题，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色，并使用系统字体。隐藏页面水印，并拦截审计事件上报和合规心跳。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -64,13 +64,10 @@
     window.addEventListener('popstate', syncApp);
 
     // ---------------------------------------------------------------------
-    // Request blocker, from the shared Feishu Lite Blocker library (see
-    // @require, always the latest version). It blocks Tea/Rangers analytics,
-    // Slardar monitoring and marketing tags before they load, including the
-    // inline Slardar loaders that keep global error and long-task observers.
-    // The security policy SDK, watermark, audit reporter and compliance ping
-    // are your company's controls and are left alone on purpose. Docs is a
-    // single-page app, so the blocker stays on after a route change.
+    // The shared library blocks trackers and the Security Policy SDK, and
+    // hides watermarks. It also blocks audit uploads and compliance pings.
+    // Keep these rules in the library so both scripts use the same code.
+    // Docs is a single-page app, so the blocker stays on after a route change.
     // ---------------------------------------------------------------------
     FeishuLiteBlocker.install();
 
