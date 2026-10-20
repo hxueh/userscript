@@ -2,9 +2,9 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.8.0
-// @description  Gives Feishu's web messenger (/next/messenger) and contacts (/next/contacts) an iOS and macOS 27 look with Liquid Glass panels, chat and contact rows, menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Shrinks the tab menu to icons, with a button to expand it. Makes the chat list and the contact group list four pinned chats wide by default; drag the divider to resize them. Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list, chats and contact lists full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
-// @description:zh-CN 为飞书网页版消息（/next/messenger）和通讯录（/next/contacts）加入 iOS 与 macOS 27 风格：液态玻璃面板、会话与联系人卡片、菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。将标签栏缩为仅显示图标，并提供展开按钮。会话列表和联系人分组列表默认宽度为四个置顶会话，可拖动分隔线调整。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表、会话和联系人列表，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
+// @version      0.8.1
+// @description  Gives Feishu's web messenger (/next/messenger) and contacts (/next/contacts) an iOS and macOS 27 look with Liquid Glass panels, chat and contact rows, menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Shrinks the tab menu to icons, with a button to expand it. Makes the chat list and the contact group list five pinned chats wide by default; drag the divider to resize them. Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list, chats and contact lists full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
+// @description:zh-CN 为飞书网页版消息（/next/messenger）和通讯录（/next/contacts）加入 iOS 与 macOS 27 风格：液态玻璃面板、会话与联系人卡片、菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。将标签栏缩为仅显示图标，并提供展开按钮。会话列表和联系人分组列表默认宽度为五个置顶会话，可拖动分隔线调整。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表、会话和联系人列表，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -855,19 +855,20 @@ html.fml:not(.fml-nav-expanded) .appNavbar_bottomList { width: 100% !important; 
 html.fml:not(.fml-nav-expanded) .navItem-userAuthList { left: 6px !important; width: 56px !important; padding: 0 !important; }
 html.fml:not(.fml-nav-expanded) :is(.user-auth-list, .user-auth-list_listContent) { justify-content: center !important; padding: 0 !important; }
 html.fml:not(.fml-nav-expanded) .user-auth-list_item { margin: 0 !important; }
-/* List widths. The chat list and the Contacts group list are 212px by
-   default: the width of four pinned chats. Feishu sets how many pinned
-   chats go on a row from the list width, and four fit from 210px (tested;
-   at 208px it shows three wider ones), so 212px leaves a small margin. The script sets --fml-list-w and
+/* List widths. The chat list and the Contacts group list are 260px by
+   default and at least: the width of five pinned chats. Feishu sets how
+   many pinned chats go on a row from the list width, and five fit from
+   256px (tested; at 254px it shows four wider ones), so 260px leaves a
+   small margin. The script sets --fml-list-w and
    --fml-contacts-w from the user's drag and keeps them in localStorage.
    Feishu clamps the chat list at 288px (an inline min-width and the
    clamp in its own resizer), so the script owns both the width and the
    drag. The chat takes the rest of the row. The phone layout is full
    screen and keeps its own rules. */
-html.fml:not(.fml-mobile) .page-view-messenger { width: var(--fml-list-w, 212px) !important; flex: none !important; }
+html.fml:not(.fml-mobile) .page-view-messenger { width: var(--fml-list-w, 260px) !important; flex: none !important; }
 html.fml:not(.fml-mobile) .page-view-messenger [style*="min-width: 288px"] { min-width: 0 !important; }
 html.fml:not(.fml-mobile) .page-view-messenger-chat { flex: 1 1 0 !important; width: auto !important; min-width: 0 !important; }
-html.fml:not(.fml-mobile) .contactPageNav { width: var(--fml-contacts-w, 212px) !important; min-width: 0 !important; max-width: none !important; flex: none !important; }
+html.fml:not(.fml-mobile) .contactPageNav { width: var(--fml-contacts-w, 260px) !important; min-width: 0 !important; max-width: none !important; flex: none !important; }
 html.fml:not(.fml-mobile) .contactTab { flex: 1 1 0 !important; width: auto !important; min-width: 0 !important; }
 /* Contacts has no divider, so the script adds one in the 8px gap between
    the two panels. It is absolutely placed, so it takes no space. */
@@ -879,7 +880,7 @@ html.fml:not(.fml-mobile) .fml-resizer {
     z-index: 5;
     top: 0;
     bottom: 0;
-    left: var(--fml-contacts-w, 212px);
+    left: var(--fml-contacts-w, 260px);
     width: 8px;
     cursor: col-resize;
 }
@@ -1604,7 +1605,7 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     // click on the divider resets the width. Feishu's own resizer stops at
     // 288px, so its drag is stopped and this one runs instead.
     // ---------------------------------------------------------------------
-    const LIST_MIN = 212; // four pinned chats per row; see the CSS
+    const LIST_MIN = 260; // five pinned chats per row; see the CSS
     const CHAT_MIN = 320; // keep the chat or the contact list usable
     const PANES = {
         messenger: { key: 'fml.listWidth', prop: '--fml-list-w', pane: '.page-view-messenger' },
