@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.1.1
+// @version      0.1.2
 // @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font. Blocks the Tea/Rangers analytics, Slardar monitoring and ad trackers, and removes "Download Feishu". Follows Feishu's own light and dark theme.
 // @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体。拦截 Tea/Rangers 统计、Slardar 监控和广告追踪，并移除“下载飞书”。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
@@ -46,6 +46,13 @@
         // fetch and its upload endpoints.
         '//[^/]*bytedapm\\.com/', '/slardar/fe/sdk-web/', '//slardar[^/]*\\.(?:feishu\\.cn|larksuite\\.com)/',
         '/monitor_(?:browser|web)/(?:collect|settings)', '//mon\\.(?:zijieapi|snssdk|tiktokv)\\.com/',
+        // The messenger's own copy of the Slardar SDK (about 90 KB). The
+        // HTML loads it with a plain <script src>, so the parser blocker
+        // below stops it.
+        '/web-client-next/p/static/js/slardar\\.[0-9a-f]+\\.js',
+        // The ByteDance accessibility-testing entry, which loads its own
+        // tooling and reporting. Readers and keyboard use do not need it.
+        '/accessibility-task-platform/',
         // Third-party marketing tags.
         '//www\\.googletagmanager\\.com/', '//(?:www|ssl)\\.google-analytics\\.com/',
         '//(?:px\\.ads|snap)\\.licdn\\.com/', '//px\\.ads\\.linkedin\\.com/', '//hm\\.baidu\\.com/',
@@ -107,6 +114,28 @@
         return nativeSetAttribute.call(this, name, value);
     };
 
+    // Scripts written in the HTML: the parser inserts them without the src
+    // setter, so the guards above never see them. An observer on the
+    // document runs before the parser executes each new script, and a
+    // script whose type is not JavaScript is skipped. Removing it as well
+    // keeps it from running if something resets the type. Firefox also
+    // fires beforescriptexecute, which is the direct way to cancel one.
+    const blockParsed = (node) => {
+        if (node.tagName !== 'SCRIPT' || !node.src || !isBlocked(node.src)) return;
+        node.type = 'javascript/blocked';
+        node.remove();
+    };
+    const parserGuard = new MutationObserver((records) => {
+        for (const rec of records) for (const n of rec.addedNodes) blockParsed(n);
+    });
+    parserGuard.observe(document, { childList: true, subtree: true });
+    // Only the first HTML parse needs this. After it, scripts come from code
+    // and the src setter covers them, so the observer stops to save work.
+    document.addEventListener('DOMContentLoaded', () => parserGuard.disconnect(), { once: true });
+    document.addEventListener('beforescriptexecute', (e) => {
+        if (e.target.src && isBlocked(e.target.src)) e.preventDefault();
+    }, true);
+
     // Inline snippets in the HTML call these globals directly, for example
     // gtag(...) or window.collectEvent(...). Stubs that accept any call keep
     // those calls from throwing now that the libraries never load.
@@ -114,6 +143,19 @@
     for (const name of ['gtag', 'ga', 'collectEvent', 'lintrk']) {
         if (!window[name]) window[name] = noop;
     }
+    // Slardar is used through chains such as Slardar('init', ...),
+    // Slardar.on('init', fn) and Slardar.getSender().send(...). A proxy
+    // that returns itself from every call and property answers all of
+    // them. It has no "then", so awaiting it does not hang, and it turns
+    // into an empty string or 0 where code reads it as a value.
+    const sink = new Proxy(function () {}, {
+        get: (_, key) => (key === 'then' || key === Symbol.iterator ? undefined
+            : key === Symbol.toPrimitive ? () => ''
+            : sink),
+        apply: () => sink,
+        construct: () => sink,
+    });
+    if (onMessenger() && !window.Slardar) window.Slardar = sink;
     if (!window.dataLayer) window.dataLayer = [];
     if (!window._hmt) window._hmt = [];
 
