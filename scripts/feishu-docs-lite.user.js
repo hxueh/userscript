@@ -2,9 +2,9 @@
 // @name         Feishu Docs Lite
 // @name:zh-CN   飞书文档精简
 // @namespace    https://github.com/hxueh
-// @version      0.1.4
-// @description  Makes Feishu Docs lighter and calmer, starting with the Wiki (/wiki and /wiki/*). Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and accessibility-testing tooling before they load, and stops their global error and long-task observers. Recolours the whole app with Solarized Light by day and Apple dark mode by night, following the system theme, and uses the system font.
-// @description:zh-CN 让飞书文档更轻、更安静，先支持知识库（/wiki 与 /wiki/*）。在加载前拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和无障碍测试工具，并停止它们的全局错误与长任务监听。跟随系统主题，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色，并使用系统字体。
+// @version      0.2.0
+// @description  Makes Feishu Docs lighter and calmer, starting with the Wiki (/wiki and /wiki/*). Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and accessibility-testing tooling before they load, and stops their global error and long-task observers. Recolours the whole app with Solarized Light by day and Apple dark mode by night, following Feishu's Appearance setting, and uses the system font.
+// @description:zh-CN 让飞书文档更轻、更安静，先支持知识库（/wiki 与 /wiki/*）。在加载前拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和无障碍测试工具，并停止它们的全局错误与长任务监听。跟随飞书的外观设置，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色，并使用系统字体。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -72,13 +72,27 @@
 
     // ---------------------------------------------------------------------
     // Light and dark. Feishu Docs has a complete dark theme behind
-    // html[data-theme="dark"], but the web app often stays light when the
-    // system is dark. The script sets that attribute from the system theme
-    // and sets it back if the app changes it, so Feishu's own dark styles
-    // (and the recolouring below) always match the system.
+    // html[data-theme="dark"], but the web app often stays light when it
+    // should be dark. The script sets that attribute from Feishu's Appearance
+    // setting (Light, Dark or Follow System, in the avatar menu), which
+    // Feishu keeps in localStorage for the whole tenant domain, and sets it
+    // back if the app changes it. So Feishu's own dark styles (and the
+    // recolouring below) follow that setting, and you can switch without
+    // changing the browser or OS theme. Follow System uses the system theme.
     // ---------------------------------------------------------------------
+    const THEME_KEY = 'larkapi/next_lark_web_preference/lark.setting.theme';
     const darkQuery = matchMedia('(prefers-color-scheme: dark)');
-    const wantedTheme = () => (darkQuery.matches ? 'dark' : 'light');
+    const themeSetting = () => {
+        // Stored as {"value":"DARK",...}; a plain string is also accepted.
+        let v = null;
+        try { v = localStorage.getItem(THEME_KEY); } catch { return null; }
+        try { v = JSON.parse(v); } catch { /* plain string */ }
+        return (v && typeof v === 'object' ? v.value : v) || null;
+    };
+    const wantedTheme = () => {
+        const setting = themeSetting();
+        return setting === 'DARK' || (setting !== 'LIGHT' && darkQuery.matches) ? 'dark' : 'light';
+    };
     const applyTheme = () => {
         const theme = wantedTheme();
         if (root.getAttribute('data-theme') !== theme) root.setAttribute('data-theme', theme);
@@ -86,6 +100,15 @@
     applyTheme();
     darkQuery.addEventListener('change', applyTheme);
     new MutationObserver(applyTheme).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    // The setting changed in another tab (for example in Messenger).
+    addEventListener('storage', (e) => { if (e.key === THEME_KEY || e.key === null) applyTheme(); });
+    // The setting changed in this tab. The script runs in the page
+    // (@grant none), so wrapping setItem sees Feishu's own write at once.
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+        setItem.call(this, key, value);
+        if (key === THEME_KEY) applyTheme();
+    };
 
     // ---------------------------------------------------------------------
     // Colours. Feishu defines about 1,800 colour tokens (--bg-body, --N900,
@@ -274,9 +297,7 @@ html.fdl {
     --fdl-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     --fdl-accent: #268bd2;
 }
-@media (prefers-color-scheme: dark) {
-    html.fdl { --fdl-accent: #0a84ff; }
-}
+html.fdl[data-theme="dark"] { --fdl-accent: #0a84ff; }
 html.fdl body,
 html.fdl :is(button, input, textarea, select) {
     font-family: var(--fdl-font) !important;

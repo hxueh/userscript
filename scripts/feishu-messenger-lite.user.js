@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.9.4
+// @version      0.10.0
 // @description  Gives Feishu's web messenger (/next/messenger) and contacts (/next/contacts) an iOS and macOS 27 look with Liquid Glass panels, chat and contact rows, menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring and ad trackers, and removes "Download Feishu". Shrinks the tab menu to icons, with a button to expand it. Makes the chat list and the contact group list five pinned chats wide by default; drag the divider to resize them. Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list, chats and contact lists full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
 // @description:zh-CN 为飞书网页版消息（/next/messenger）和通讯录（/next/contacts）加入 iOS 与 macOS 27 风格：液态玻璃面板、会话与联系人卡片、菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控和广告追踪，并移除“下载飞书”。将标签栏缩为仅显示图标，并提供展开按钮。会话列表和联系人分组列表默认宽度为五个置顶会话，可拖动分隔线调整。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表、会话和联系人列表，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
@@ -312,179 +312,177 @@ html.fml, html.fml body {
 
     -webkit-text-size-adjust: 100%;
 }
-@media (prefers-color-scheme: dark) {
-    html.fml, html.fml body {
-        /* Apple dark mode (iOS and macOS system colours), with secondary
-           text raised from #98989f to #c7c7cc so previews stay readable.
-           Links use the lighter #409cff (6:1 on #1c1c1e), and filled buttons
-           use Apple's web blue #0071e3, because white on #0a84ff is 3.6:1. */
-        --fml-blue: #0a84ff;
-        --fml-green: #30d158;
-        --fml-red: #ff453a;
-        --N00: #000000;
-        --N50: #1c1c1e;
-        --N100: #2c2c2e;
-        --N200: #3a3a3c;
-        --N300: #48484a;
-        --N350: #545458;
-        --N400: #636366;
-        --N500: #8e8e93;
-        --N600: #aeaeb2;
-        --N650: #c7c7cc;
-        --N700: #d1d1d6;
-        --N800: #e5e5ea;
-        --N900: #f2f2f7;
-        --N950: #f9f9fb;
-        --N1000: #ffffff;
-        --B50: #1a2634;
-        --primary-pri-50: #1a2634;
-        --primary-pri-50-raw: 26,38,52;
-        --B100: #192d42;
-        --primary-pri-100: #192d42;
-        --primary-pri-100-raw: 25,45,66;
-        --B200: #17395d;
-        --primary-pri-200: #17395d;
-        --primary-pri-200-raw: 23,57,93;
-        --B300: #14487c;
-        --primary-pri-300: #14487c;
-        --primary-pri-300-raw: 20,72,124;
-        --B350: #12569c;
-        --primary-pri-350: #12569c;
-        --primary-pri-350-raw: 18,86,156;
-        --B400: #0e6ac7;
-        --primary-pri-400: #0e6ac7;
-        --primary-pri-400-raw: 14,106,199;
-        --B500: #0a84ff;
-        --primary-pri-500: #0a84ff;
-        --primary-pri-500-raw: 10,132,255;
-        --B600: #409cff;
-        --primary-pri-600: #409cff;
-        --primary-pri-600-raw: 64,156,255;
-        --B700: #64b0ff;
-        --primary-pri-700: #64b0ff;
-        --primary-pri-700-raw: 100,176,255;
-        --B800: #8cc4ff;
-        --primary-pri-800: #8cc4ff;
-        --primary-pri-800-raw: 140,196,255;
-        --B900: #b3d8ff;
-        --primary-pri-900: #b3d8ff;
-        --primary-pri-900-raw: 179,216,255;
-        --primary-content-default: #409cff;
-        --primary-content-default-raw: 64,156,255;
-        --primary-content-hover: #64b0ff;
-        --primary-content-hover-raw: 100,176,255;
-        --primary-content-pressed: #0a84ff;
-        --primary-content-pressed-raw: 10,132,255;
-        --primary-content-loading: #14487c;
-        --primary-content-loading-raw: 20,72,124;
-        --primary-fill-default: #0071e3;
-        --primary-fill-default-raw: 0,113,227;
-        --primary-fill-hover: #0a84ff;
-        --primary-fill-hover-raw: 10,132,255;
-        --primary-fill-pressed: #0062c4;
-        --primary-fill-pressed-raw: 0,98,196;
-        --primary-fill-loading: #14487c;
-        --primary-fill-loading-raw: 20,72,124;
-        --primary-fill-solid-01: #1a2634;
-        --primary-fill-solid-01-raw: 26,38,52;
-        --primary-fill-solid-02: #192d42;
-        --primary-fill-solid-02-raw: 25,45,66;
-        --primary-fill-solid-03: #17395d;
-        --primary-fill-solid-03-raw: 23,57,93;
-        --primary-fill-transparent-01: rgba(10, 132, 255, 0.15);
-        --primary-fill-transparent-01-raw: 10,132,255;
-        --primary-fill-transparent-02: rgba(10, 132, 255, 0.2);
-        --primary-fill-transparent-02-raw: 10,132,255;
-        --primary-fill-transparent-03: rgba(10, 132, 255, 0.3);
-        --primary-fill-transparent-03-raw: 10,132,255;
-        --primary-on-primary-fill: #ffffff;
-        --primary-on-primary-fill-raw: 255,255,255;
-        --bg-pricolor: #0071e3;
-        --bg-pricolor-raw: 0,113,227;
-        --text-link-normal: #409cff;
-        --text-link-normal-raw: 64,156,255;
-        --text-link-hover: #64b0ff;
-        --text-link-hover-raw: 100,176,255;
-        --text-link-pressed: #0a84ff;
-        --text-link-pressed-raw: 10,132,255;
-        --text-link-loading: #14487c;
-        --text-link-loading-raw: 20,72,124;
-        --fill-active: rgba(10, 132, 255, 0.24);
-        --fill-active-raw: 10,132,255;
-        --fill-selected: rgba(10, 132, 255, 0.18);
-        --fill-selected-raw: 10,132,255;
-        --bg-text-selection: rgba(10, 132, 255, 0.35);
-        --bg-text-selection-raw: 10,132,255;
-        --bg-body: #1c1c1e;
-        --bg-body-raw: 28,28,30;
-        --bg-base: #111113;
-        --bg-base-raw: 17,17,19;
-        --bg-body-overlay: #2c2c2e;
-        --bg-body-overlay-raw: 44,44,46;
-        --bg-content-base: #1c1c1e;
-        --bg-content-base-raw: 28,28,30;
-        --bg-filler: #2c2c2e;
-        --bg-filler-raw: 44,44,46;
-        --bg-float: #2c2c2e;
-        --bg-float-raw: 44,44,46;
-        --bg-float-base: #1c1c1e;
-        --bg-float-base-raw: 28,28,30;
-        --bg-float-overlay: #3a3a3c;
-        --bg-float-overlay-raw: 58,58,60;
-        --bg-sub-navigation: #242426;
-        --bg-sub-navigation-raw: 36,36,38;
-        --bg-tips: #3a3a3c;
-        --bg-tips-raw: 58,58,60;
-        --text-title: #ffffff;
-        --text-title-raw: 255,255,255;
-        --text-caption: #c7c7cc;
-        --text-caption-raw: 199,199,204;
-        --text-placeholder: #8e8e93;
-        --text-placeholder-raw: 142,142,147;
-        --text-disabled: #636366;
-        --text-disabled-raw: 99,99,102;
-        --text-link-disabled: #636366;
-        --text-link-disabled-raw: 99,99,102;
-        --icon-n1: #f2f2f7;
-        --icon-n1-raw: 242,242,247;
-        --icon-n2: #c7c7cc;
-        --icon-n2-raw: 199,199,204;
-        --icon-n3: #8e8e93;
-        --icon-n3-raw: 142,142,147;
-        --icon-disabled: #636366;
-        --icon-disabled-raw: 99,99,102;
-        --fill-disabled: #3a3a3c;
-        --fill-disabled-raw: 58,58,60;
-        --line-border-component: #48484a;
-        --line-border-component-raw: 72,72,74;
-        --line-divider-module: #111113;
-        --line-divider-module-raw: 17,17,19;
-        --bg-float-push: rgba(44, 44, 46, 0.8);
-        --bg-float-push-raw: 44,44,46;
-        --fill-hover: rgba(235, 235, 245, 0.08);
-        --fill-hover-raw: 235,235,245;
-        --fill-focus: rgba(235, 235, 245, 0.12);
-        --fill-focus-raw: 235,235,245;
-        --fill-pressed: rgba(235, 235, 245, 0.14);
-        --fill-pressed-raw: 235,235,245;
-        --fill-tag: rgba(235, 235, 245, 0.1);
-        --fill-tag-raw: 235,235,245;
-        --line-border-card: rgba(255, 255, 255, 0.1);
-        --line-border-card-raw: 255,255,255;
-        --line-divider-default: rgba(84, 84, 88, 0.65);
-        --line-divider-default-raw: 84,84,88;
-        --fill-loading-mask: rgba(0, 0, 0, 0.6);
-        --fill-loading-mask-raw: 0,0,0;
-        --fml-glass-edge: inset 0 .5px 0 rgba(255, 255, 255, .16), inset 0 0 0 .5px rgba(255, 255, 255, .08);
-        --fml-glass-shadow: 0 12px 36px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .3);
-        --fml-panel-shadow: 0 8px 28px rgba(0, 0, 0, .4), 0 1px 3px rgba(0, 0, 0, .3);
-        /* System blue, purple and teal glows on a near-black desktop. */
-        --fml-wallpaper:
-            radial-gradient(70vw 60vh at 0% 0%, rgba(10, 132, 255, .2), transparent 70%),
-            radial-gradient(60vw 60vh at 100% 100%, rgba(191, 90, 242, .15), transparent 70%),
-            radial-gradient(50vw 50vh at 85% 5%, rgba(100, 210, 255, .08), transparent 70%),
-            #111113;
-    }
+html.fml.fml-dark, html.fml.fml-dark body {
+    /* Apple dark mode (iOS and macOS system colours), with secondary
+       text raised from #98989f to #c7c7cc so previews stay readable.
+       Links use the lighter #409cff (6:1 on #1c1c1e), and filled buttons
+       use Apple's web blue #0071e3, because white on #0a84ff is 3.6:1. */
+    --fml-blue: #0a84ff;
+    --fml-green: #30d158;
+    --fml-red: #ff453a;
+    --N00: #000000;
+    --N50: #1c1c1e;
+    --N100: #2c2c2e;
+    --N200: #3a3a3c;
+    --N300: #48484a;
+    --N350: #545458;
+    --N400: #636366;
+    --N500: #8e8e93;
+    --N600: #aeaeb2;
+    --N650: #c7c7cc;
+    --N700: #d1d1d6;
+    --N800: #e5e5ea;
+    --N900: #f2f2f7;
+    --N950: #f9f9fb;
+    --N1000: #ffffff;
+    --B50: #1a2634;
+    --primary-pri-50: #1a2634;
+    --primary-pri-50-raw: 26,38,52;
+    --B100: #192d42;
+    --primary-pri-100: #192d42;
+    --primary-pri-100-raw: 25,45,66;
+    --B200: #17395d;
+    --primary-pri-200: #17395d;
+    --primary-pri-200-raw: 23,57,93;
+    --B300: #14487c;
+    --primary-pri-300: #14487c;
+    --primary-pri-300-raw: 20,72,124;
+    --B350: #12569c;
+    --primary-pri-350: #12569c;
+    --primary-pri-350-raw: 18,86,156;
+    --B400: #0e6ac7;
+    --primary-pri-400: #0e6ac7;
+    --primary-pri-400-raw: 14,106,199;
+    --B500: #0a84ff;
+    --primary-pri-500: #0a84ff;
+    --primary-pri-500-raw: 10,132,255;
+    --B600: #409cff;
+    --primary-pri-600: #409cff;
+    --primary-pri-600-raw: 64,156,255;
+    --B700: #64b0ff;
+    --primary-pri-700: #64b0ff;
+    --primary-pri-700-raw: 100,176,255;
+    --B800: #8cc4ff;
+    --primary-pri-800: #8cc4ff;
+    --primary-pri-800-raw: 140,196,255;
+    --B900: #b3d8ff;
+    --primary-pri-900: #b3d8ff;
+    --primary-pri-900-raw: 179,216,255;
+    --primary-content-default: #409cff;
+    --primary-content-default-raw: 64,156,255;
+    --primary-content-hover: #64b0ff;
+    --primary-content-hover-raw: 100,176,255;
+    --primary-content-pressed: #0a84ff;
+    --primary-content-pressed-raw: 10,132,255;
+    --primary-content-loading: #14487c;
+    --primary-content-loading-raw: 20,72,124;
+    --primary-fill-default: #0071e3;
+    --primary-fill-default-raw: 0,113,227;
+    --primary-fill-hover: #0a84ff;
+    --primary-fill-hover-raw: 10,132,255;
+    --primary-fill-pressed: #0062c4;
+    --primary-fill-pressed-raw: 0,98,196;
+    --primary-fill-loading: #14487c;
+    --primary-fill-loading-raw: 20,72,124;
+    --primary-fill-solid-01: #1a2634;
+    --primary-fill-solid-01-raw: 26,38,52;
+    --primary-fill-solid-02: #192d42;
+    --primary-fill-solid-02-raw: 25,45,66;
+    --primary-fill-solid-03: #17395d;
+    --primary-fill-solid-03-raw: 23,57,93;
+    --primary-fill-transparent-01: rgba(10, 132, 255, 0.15);
+    --primary-fill-transparent-01-raw: 10,132,255;
+    --primary-fill-transparent-02: rgba(10, 132, 255, 0.2);
+    --primary-fill-transparent-02-raw: 10,132,255;
+    --primary-fill-transparent-03: rgba(10, 132, 255, 0.3);
+    --primary-fill-transparent-03-raw: 10,132,255;
+    --primary-on-primary-fill: #ffffff;
+    --primary-on-primary-fill-raw: 255,255,255;
+    --bg-pricolor: #0071e3;
+    --bg-pricolor-raw: 0,113,227;
+    --text-link-normal: #409cff;
+    --text-link-normal-raw: 64,156,255;
+    --text-link-hover: #64b0ff;
+    --text-link-hover-raw: 100,176,255;
+    --text-link-pressed: #0a84ff;
+    --text-link-pressed-raw: 10,132,255;
+    --text-link-loading: #14487c;
+    --text-link-loading-raw: 20,72,124;
+    --fill-active: rgba(10, 132, 255, 0.24);
+    --fill-active-raw: 10,132,255;
+    --fill-selected: rgba(10, 132, 255, 0.18);
+    --fill-selected-raw: 10,132,255;
+    --bg-text-selection: rgba(10, 132, 255, 0.35);
+    --bg-text-selection-raw: 10,132,255;
+    --bg-body: #1c1c1e;
+    --bg-body-raw: 28,28,30;
+    --bg-base: #111113;
+    --bg-base-raw: 17,17,19;
+    --bg-body-overlay: #2c2c2e;
+    --bg-body-overlay-raw: 44,44,46;
+    --bg-content-base: #1c1c1e;
+    --bg-content-base-raw: 28,28,30;
+    --bg-filler: #2c2c2e;
+    --bg-filler-raw: 44,44,46;
+    --bg-float: #2c2c2e;
+    --bg-float-raw: 44,44,46;
+    --bg-float-base: #1c1c1e;
+    --bg-float-base-raw: 28,28,30;
+    --bg-float-overlay: #3a3a3c;
+    --bg-float-overlay-raw: 58,58,60;
+    --bg-sub-navigation: #242426;
+    --bg-sub-navigation-raw: 36,36,38;
+    --bg-tips: #3a3a3c;
+    --bg-tips-raw: 58,58,60;
+    --text-title: #ffffff;
+    --text-title-raw: 255,255,255;
+    --text-caption: #c7c7cc;
+    --text-caption-raw: 199,199,204;
+    --text-placeholder: #8e8e93;
+    --text-placeholder-raw: 142,142,147;
+    --text-disabled: #636366;
+    --text-disabled-raw: 99,99,102;
+    --text-link-disabled: #636366;
+    --text-link-disabled-raw: 99,99,102;
+    --icon-n1: #f2f2f7;
+    --icon-n1-raw: 242,242,247;
+    --icon-n2: #c7c7cc;
+    --icon-n2-raw: 199,199,204;
+    --icon-n3: #8e8e93;
+    --icon-n3-raw: 142,142,147;
+    --icon-disabled: #636366;
+    --icon-disabled-raw: 99,99,102;
+    --fill-disabled: #3a3a3c;
+    --fill-disabled-raw: 58,58,60;
+    --line-border-component: #48484a;
+    --line-border-component-raw: 72,72,74;
+    --line-divider-module: #111113;
+    --line-divider-module-raw: 17,17,19;
+    --bg-float-push: rgba(44, 44, 46, 0.8);
+    --bg-float-push-raw: 44,44,46;
+    --fill-hover: rgba(235, 235, 245, 0.08);
+    --fill-hover-raw: 235,235,245;
+    --fill-focus: rgba(235, 235, 245, 0.12);
+    --fill-focus-raw: 235,235,245;
+    --fill-pressed: rgba(235, 235, 245, 0.14);
+    --fill-pressed-raw: 235,235,245;
+    --fill-tag: rgba(235, 235, 245, 0.1);
+    --fill-tag-raw: 235,235,245;
+    --line-border-card: rgba(255, 255, 255, 0.1);
+    --line-border-card-raw: 255,255,255;
+    --line-divider-default: rgba(84, 84, 88, 0.65);
+    --line-divider-default-raw: 84,84,88;
+    --fill-loading-mask: rgba(0, 0, 0, 0.6);
+    --fill-loading-mask-raw: 0,0,0;
+    --fml-glass-edge: inset 0 .5px 0 rgba(255, 255, 255, .16), inset 0 0 0 .5px rgba(255, 255, 255, .08);
+    --fml-glass-shadow: 0 12px 36px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .3);
+    --fml-panel-shadow: 0 8px 28px rgba(0, 0, 0, .4), 0 1px 3px rgba(0, 0, 0, .3);
+    /* System blue, purple and teal glows on a near-black desktop. */
+    --fml-wallpaper:
+        radial-gradient(70vw 60vh at 0% 0%, rgba(10, 132, 255, .2), transparent 70%),
+        radial-gradient(60vw 60vh at 100% 100%, rgba(191, 90, 242, .15), transparent 70%),
+        radial-gradient(50vw 50vh at 85% 5%, rgba(100, 210, 255, .08), transparent 70%),
+        #111113;
 }
 
 html.fml, html.fml body,
@@ -943,10 +941,49 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     whenRoot(() => (document.head || document.documentElement).appendChild(style));
 
     // ---------------------------------------------------------------------
+    // Light or dark. Feishu keeps its Appearance setting (Light, Dark or
+    // Follow System, in the avatar menu) in localStorage, but most of its
+    // CSS only reads the system theme. The script reads the setting and sets
+    // html.fml-dark, so the theme above follows Feishu's setting and you can
+    // switch without changing the browser or OS theme.
+    // ---------------------------------------------------------------------
+    const THEME_KEY = 'larkapi/next_lark_web_preference/lark.setting.theme';
+    const darkQuery = matchMedia('(prefers-color-scheme: dark)');
+    const themeSetting = () => {
+        // Stored as {"value":"DARK",...}; a plain string is also accepted.
+        let v = null;
+        try { v = localStorage.getItem(THEME_KEY); } catch { return null; }
+        try { v = JSON.parse(v); } catch { /* plain string */ }
+        return (v && typeof v === 'object' ? v.value : v) || null;
+    };
+    const applyTheme = () => {
+        const setting = themeSetting();
+        const dark = setting === 'DARK' || (setting !== 'LIGHT' && darkQuery.matches);
+        whenRoot(() => document.documentElement.classList.toggle('fml-dark', dark));
+    };
+    applyTheme();
+    darkQuery.addEventListener('change', applyTheme);
+    // Another tab changed the setting.
+    addEventListener('storage', (e) => { if (e.key === THEME_KEY || e.key === null) applyTheme(); });
+    // This tab changed it. The script runs in the page (@grant none), so
+    // wrapping setItem sees Feishu's own write at once.
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+        setItem.call(this, key, value);
+        if (key === THEME_KEY) applyTheme();
+    };
+
+    // ---------------------------------------------------------------------
     // The other tokens. Feishu has about 13,000 tokens on :root, about 440
     // of them grays. Once its token sheet loads, each gray is remapped to the
     // palette colour at the same lightness (alpha kept); real colours stay.
     // The result goes before the main style, so the core tokens above win.
+    //
+    // Feishu puts its dark tokens in a (prefers-color-scheme: dark) query, so
+    // they follow the system, not Feishu's Appearance setting. Each theme is
+    // therefore written in full under its own class (html.fml or
+    // html.fml.fml-dark): every token whose value differs between Feishu's
+    // light and dark sets is copied, so the wrong set never shows through.
     // ---------------------------------------------------------------------
     // Lightness stops; a gray between two stops is interpolated.
     const RAMPS = {
@@ -978,12 +1015,18 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     // Tokens that must keep Feishu's value: fixed colours, illustrations,
     // charts, and the watermark.
     const KEEP = /static|white|black|illustration|datav|watermark|-(?:raw|SR|SG|SB|SA|HS|L)$/i;
-    const remap = (rule, ramp) => {
+    const remap = (rule, ramp, other) => {
         const out = [];
         for (const name of rule.style) {
-            if (!name.startsWith('--') || KEEP.test(name)) continue;
-            const c = parseColor(rule.style.getPropertyValue(name));
-            if (!c || Math.max(c[0], c[1], c[2]) - Math.min(c[0], c[1], c[2]) > 14) continue;
+            if (!name.startsWith('--')) continue;
+            const value = rule.style.getPropertyValue(name).trim();
+            const c = KEEP.test(name) ? null : parseColor(value);
+            if (!c || Math.max(c[0], c[1], c[2]) - Math.min(c[0], c[1], c[2]) > 14) {
+                // Not a gray: keep Feishu's value for this theme, but only
+                // where the other theme has a different one.
+                if (other && other.style.getPropertyValue(name).trim() !== value) out.push(`${name}: ${value};`);
+                continue;
+            }
             const l = (Math.max(c[0], c[1], c[2]) + Math.min(c[0], c[1], c[2])) / 510;
             const [r, g, b] = rampAt(ramp, l);
             out.push(`${name}: ${c[3] === 1 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${c[3]})`};`);
@@ -1008,19 +1051,20 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
                 continue;
             }
             done.add(sheet);
-            let css = '';
+            // The token sheet: a huge :root, and again inside a dark query.
+            let light = null, dark = null;
             for (const rule of rules) {
-                // The token sheet: a huge :root, and again inside a dark query.
-                if (rule.selectorText === ':root' && rule.style.length > 500) {
-                    css += `html.fml, html.fml body {\n${remap(rule, RAMPS.light)}\n}\n`;
-                } else if (rule.media && /dark/.test(rule.media.mediaText)) {
+                if (rule.selectorText === ':root' && rule.style.length > 500) light = rule;
+                else if (rule.media && /dark/.test(rule.media.mediaText)) {
                     for (const inner of rule.cssRules) {
-                        if (inner.selectorText === ':root' && inner.style.length > 500) {
-                            css += `@media (prefers-color-scheme: dark) {\nhtml.fml, html.fml body {\n${remap(inner, RAMPS.dark)}\n}\n}\n`;
-                        }
+                        if (inner.selectorText === ':root' && inner.style.length > 500) dark = inner;
                     }
                 }
             }
+            let css = '';
+            if (light) css += `html.fml, html.fml body {\n${remap(light, RAMPS.light, dark)}\n}\n`;
+            // Later in the sheet, and more specific, so it wins when dark.
+            if (dark) css += `html.fml.fml-dark, html.fml.fml-dark body {\n${remap(dark, RAMPS.dark, light)}\n}\n`;
             if (css) {
                 tokenStyle.textContent += css;
                 if (!tokenStyle.isConnected && style.parentNode) style.parentNode.insertBefore(tokenStyle, style);
