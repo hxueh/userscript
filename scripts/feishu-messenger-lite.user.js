@@ -2,9 +2,9 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.6.0
-// @description  Gives Feishu's web messenger (/next/messenger) and contacts (/next/contacts) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list, chats and contact lists full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
-// @description:zh-CN 为飞书网页版消息（/next/messenger）和通讯录（/next/contacts）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表、会话和联系人列表，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
+// @version      0.6.1
+// @description  Gives Feishu's web messenger (/next/messenger) and contacts (/next/contacts) an iOS and macOS 27 look with Liquid Glass panels, chat and contact rows, menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list, chats and contact lists full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
+// @description:zh-CN 为飞书网页版消息（/next/messenger）和通讯录（/next/contacts）加入 iOS 与 macOS 27 风格：液态玻璃面板、会话与联系人卡片、菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表、会话和联系人列表，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -749,6 +749,30 @@ html.fml :is(.page-content-wrapper, .contactPageNav, .contactTab) {
     corner-shape: squircle;
     overflow: hidden;
     box-shadow: var(--fml-glass-edge), var(--fml-panel-shadow) !important;
+}
+/* Glass cards: each chat row and each contact row is a small glass card on
+   the glass panel. The tint is a background-image, not a background-color,
+   so Feishu's own hover and selected colours (set as background-color)
+   still show through it. */
+html.fml :is(.a11y_feed_main_list .a11y_feed_card_item, .contactTab .list_items .larkc-card) {
+    background-image: linear-gradient(color-mix(in srgb, var(--bg-float) 60%, transparent),
+                                      color-mix(in srgb, var(--bg-float) 60%, transparent)) !important;
+    border-radius: var(--fml-radius-m) !important;
+    corner-shape: squircle;
+    box-shadow: var(--fml-glass-edge), 0 1px 3px rgba(0, 0, 0, .08) !important;
+}
+/* Chat rows: a 6px gap between cards. The chat list is a virtual list that
+   measures each row, so the margin moves the rows below it down. */
+html.fml .a11y_feed_main_list .a11y_feed_card_item { margin-bottom: 6px !important; }
+/* Contact rows are placed at fixed 54px steps, so a margin would make them
+   overlap. A transparent 3px border at the top and bottom makes the gap
+   inside the row instead (the rows are border-box, so the height stays),
+   and the background is clipped to the padding box. The drop shadow is
+   left out: it would draw at the outer edge of the transparent border. */
+html.fml .contactTab .list_items .larkc-card {
+    border-block: 3px solid transparent !important;
+    background-clip: padding-box !important;
+    box-shadow: var(--fml-glass-edge) !important;
 }
 /* The sidebar glass is an inset pseudo-element, so the bar keeps its
    layout; isolation keeps the glass behind the bar's content. */
