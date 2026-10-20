@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.2.3
+// @version      0.2.4
 // @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Tokyo Night by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Switches with Feishu's own light and dark theme.
 // @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Tokyo Night 配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
@@ -924,6 +924,25 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
         }
         if (pending.length && !frame) frame = requestAnimationFrame(flush);
     });
+
+    // ---------------------------------------------------------------------
+    // The "Done" (archive) button on a chat row shows a "Done" tooltip on
+    // hover. React builds the tooltip from the mouse events that reach its
+    // root, so stopping the events that enter the button keeps the tooltip
+    // from being created at all. Leaving the button is not stopped, so the
+    // row's own hover state still clears. The button still works on click.
+    // ---------------------------------------------------------------------
+    const DONE_BUTTON = '.a11y_feed_item_done';
+    const muteDoneTooltip = (e) => {
+        if (!active) return;
+        // Entering the button: mouseover targets it, and the mouseout from
+        // the row has it as relatedTarget.
+        const t = e.type.endsWith('out') ? e.relatedTarget : e.target;
+        if (t instanceof Element && t.closest(DONE_BUTTON)) e.stopPropagation();
+    };
+    for (const type of ['mouseover', 'mouseout', 'pointerover', 'pointerout']) {
+        document.addEventListener(type, muteDoneTooltip, true);
+    }
 
     // ---------------------------------------------------------------------
     // Route tracking: the theme and the observer are on only on /next/messenger.
