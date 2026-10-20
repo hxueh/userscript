@@ -2,13 +2,14 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.5.0
-// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list and chats full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
-// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表和会话，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
+// @version      0.6.0
+// @description  Gives Feishu's web messenger (/next/messenger) and contacts (/next/contacts) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list, chats and contact lists full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
+// @description:zh-CN 为飞书网页版消息（/next/messenger）和通讯录（/next/contacts）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表、会话和联系人列表，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
 // @match        https://*.feishu.cn/next/messenger*
+// @match        https://*.feishu.cn/next/contacts*
 // @run-at       document-start
 // @grant        none
 // @noframes
@@ -23,9 +24,12 @@
     // whether a broken feature is caused by this script.
     if (new URLSearchParams(location.search).get('fml') === 'off') return;
 
-    // Feishu is one single-page app across Messenger, Docs, Calendar and the
-    // rest, so every part of this script checks the route first.
-    const onMessenger = () => location.pathname.startsWith('/next/messenger');
+    // Feishu is one single-page app across Messenger, Contacts, Docs,
+    // Calendar and the rest, so every part of this script checks the route
+    // first. The script styles Messenger and Contacts; section() tells them
+    // apart for the phone layout, which differs between the two pages.
+    const section = () => location.pathname.match(/^\/next\/(messenger|contacts)(?:\/|$)/)?.[1] || null;
+    const onFeishuPage = () => section() !== null;
 
     // ---------------------------------------------------------------------
     // Phones. Feishu's server answers a phone user agent with a small
@@ -103,7 +107,7 @@
         document.write(html);
         document.close();
     };
-    if (PHONE_UA && !desktopLoaded && onMessenger()) {
+    if (PHONE_UA && !desktopLoaded && onFeishuPage()) {
         loadDesktopApp();
         return;
     }
@@ -140,7 +144,7 @@
         try {
             const s = typeof url === 'string' ? url : String(url instanceof Request ? url.url : url);
             if (s.startsWith('data:') || s.startsWith('blob:')) return false;
-            return onMessenger() && BLOCKED_URL.test(s);
+            return onFeishuPage() && BLOCKED_URL.test(s);
         } catch { return false; }
     };
 
@@ -227,7 +231,7 @@
         apply: () => sink,
         construct: () => sink,
     });
-    if (onMessenger() && !window.Slardar) window.Slardar = sink;
+    if (onFeishuPage() && !window.Slardar) window.Slardar = sink;
     if (!window.dataLayer) window.dataLayer = [];
     if (!window._hmt) window._hmt = [];
 
@@ -651,7 +655,8 @@ html.fml .a11y_feed_card_item, html.fml .a11y_feed_card_item > * { transition: n
    the back swipe returns to the list. Feishu's own script hides the list
    with an inline display: none and squeezes the chat at this width, so
    these rules use !important to win over inline styles. The sidebar
-   (Calendar, Docs and the rest) is hidden: this script is for Messenger. */
+   (Calendar, Docs and the rest) is hidden: this script is for Messenger
+   and Contacts. */
 html.fml.fml-mobile .appNavbar,
 html.fml.fml-mobile .sidebar-resizer { display: none !important; }
 html.fml.fml-mobile .appLayout {
@@ -670,8 +675,15 @@ html.fml.fml-mobile .page-view-messenger { display: block !important; width: 100
 html.fml.fml-mobile .page-view-messenger-chat { display: none !important; }
 html.fml.fml-mobile.fml-chat-open .page-view-messenger { display: none !important; }
 html.fml.fml-mobile.fml-chat-open .page-view-messenger-chat { display: block !important; width: 100% !important; }
+/* Contacts works the same way: the list of contact groups (.contactPageNav)
+   fills the screen, and a tap on a group shows its contacts (.contactTab). */
+html.fml.fml-mobile .contactPageNav { display: block !important; width: 100% !important; max-width: none !important; flex: 1 1 auto !important; }
+html.fml.fml-mobile .contactTab { display: none !important; }
+html.fml.fml-mobile.fml-chat-open .contactPageNav { display: none !important; }
+html.fml.fml-mobile.fml-chat-open .contactTab { display: flex !important; width: 100% !important; min-width: 0 !important; flex: 1 1 auto !important; }
+html.fml.fml-mobile .contactTab_header { padding-left: 44px !important; }
 /* Full-screen panels, as on iPhone, instead of floating cards. */
-html.fml.fml-mobile .page-content-wrapper {
+html.fml.fml-mobile :is(.page-content-wrapper, .contactPageNav, .contactTab) {
     border-radius: 0 !important;
     box-shadow: none !important;
 }
@@ -726,8 +738,12 @@ html.fml :is(.messagesLayout, .appLayout-content, .appNavbar-navbarMenu,
              .lark-chat.main-box, .chatContainer, .chatMainContent) {
     background: transparent !important;
 }
-/* Glass panels: the chat list and the chat. */
-html.fml .page-content-wrapper {
+/* Glass panels: the chat list and the chat, and in Contacts the group
+   list and the contact list. Contacts has no .page-content-wrapper, so its
+   two panels get the same glass and the same gap. */
+html.fml .contactPage { background: transparent !important; gap: 8px; }
+html.fml.fml-mobile .contactPage { gap: 0; }
+html.fml :is(.page-content-wrapper, .contactPageNav, .contactTab) {
     background: color-mix(in srgb, var(--bg-body) 68%, transparent) !important;
     border-radius: var(--fml-radius-panel) !important;
     corner-shape: squircle;
@@ -911,7 +927,7 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     html.fml :is(.ud__tooltip__content, .ud__tooltip-inner, [role="tooltip"]) {
         background: var(--bg-tips, #1f2329) !important;
     }
-    html.fml :is(.page-content-wrapper, .chatContainer__headerWrapper, .lark__editor--default) {
+    html.fml :is(.page-content-wrapper, .contactPageNav, .contactTab, .chatContainer__headerWrapper, .lark__editor--default) {
         background: var(--bg-body) !important;
     }
     html.fml .appNavbar::before { background: var(--bg-body-overlay); }
@@ -1024,12 +1040,12 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     };
     // Load events do not bubble, so listen in the capture phase.
     const onLinkLoad = (e) => {
-        if (e.target.tagName === 'LINK' && onMessenger()) buildTokens();
+        if (e.target.tagName === 'LINK' && onFeishuPage()) buildTokens();
     };
     document.addEventListener('load', onLinkLoad, true);
-    document.addEventListener('DOMContentLoaded', () => { if (onMessenger()) buildTokens(); }, { once: true });
+    document.addEventListener('DOMContentLoaded', () => { if (onFeishuPage()) buildTokens(); }, { once: true });
     // A manager that injects after the HTML is parsed misses those events.
-    if (document.readyState !== 'loading' && onMessenger()) whenRoot(buildTokens);
+    if (document.readyState !== 'loading' && onFeishuPage()) whenRoot(buildTokens);
 
     // ---------------------------------------------------------------------
     // "Download Feishu" entries that the CSS cannot match: find them by their
@@ -1077,7 +1093,7 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
         frame = 0;
         const roots = pending;
         pending = [];
-        if (!onMessenger()) return;
+        if (!onFeishuPage()) return;
         for (const root of roots) if (root.isConnected && !root.closest(SKIP)) scan(root);
     };
     const observer = new MutationObserver((records) => {
@@ -1391,8 +1407,16 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     };
     // A tap on a chat row shows the chat. The Done button archives without
     // opening, and "Collapsed Chats" opens its folder inside the list.
+    // In Contacts, a tap on a contact group shows its contacts. The group
+    // items have a type class (ORGANIZATION, GROUP and so on); the tenant
+    // item at the top has none and stays in the list.
     document.addEventListener('click', (e) => {
         if (!mobile || !active || !(e.target instanceof Element)) return;
+        if (section() === 'contacts') {
+            const item = e.target.closest('.contactPageNav_item');
+            if (item && item.classList.length > 1 && e.target.closest('.larkc-card')) openChatView();
+            return;
+        }
         const row = e.target.closest('.a11y_feed_card_item');
         if (!row || e.target.closest(DONE_BUTTON)) return;
         const box = feedStore?.getState().status?.boxEntryId;
@@ -1415,11 +1439,20 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     window.addEventListener('resize', () => { if (active) syncMobile(); });
 
     // ---------------------------------------------------------------------
-    // Route tracking: the theme and the observer are on only on /next/messenger.
+    // Route tracking: the theme and the observer are on only on /next/messenger
+    // and /next/contacts.
     // ---------------------------------------------------------------------
     let active = false;
+    let lastSection = null;
     const sync = () => {
-        const want = onMessenger();
+        const want = onFeishuPage();
+        // Going between Messenger and Contacts keeps the script on, but the
+        // open chat or contact list belongs to the page that was left.
+        const now = section();
+        if (now !== lastSection) {
+            lastSection = now;
+            closeChatView();
+        }
         if (want === active) return;
         active = want;
         document.documentElement.classList.toggle('fml', want);
