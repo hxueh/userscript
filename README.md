@@ -27,10 +27,21 @@ Updates arrive through the manager's normal update check.
 | Taobao & Tmall Lite | Desktop Taobao and Tmall reduced to search, product, SKU and buy buttons; responsive down to phone width | [600695](https://greasyfork.org/en/scripts/600695) |
 | Ctrip Mobile Lite | iOS 27 Liquid Glass look for m.ctrip.com with a floating tab bar and dark mode; blocks analytics, ad and app wake-up scripts, and removes ads and app prompts | [601079](https://greasyfork.org/en/scripts/601079) |
 | Feishu Messenger Lite | Liquid Glass look for Feishu's web messenger (`/next/messenger`) and contacts (`/next/contacts`): glass sidebar, panels, chat and contact rows, and menus, Solarized Light by day and Apple dark mode by night; blocks Tea, Slardar and ad trackers, and removes "Download Feishu"; icon-only tab menu that expands on demand; narrow, resizable chat and contact lists; prefetches the chat list and small chats, shows the Done button on every chat, and puts Collapsed Chats last; works on iPhone Safari with a full-screen phone layout | [601213](https://greasyfork.org/en/scripts/601213) |
+| Feishu Docs Lite | Lighter Feishu Wiki (`/wiki`): blocks Tea and Slardar trackers, Solarized Light by day and Apple dark mode by night, following the system theme; keeps the company watermark and security features. Base, Sheets and Docs come later | [601259](https://greasyfork.org/en/scripts/601259) |
 | WSJ Dark Mode | Follows the system theme and darkens all WSJ pages, with photos and video kept in true color | [560962](https://greasyfork.org/en/scripts/560962) |
 | Max: Always Highest Video Quality | Pins Max (HBO Max) to the top rung of each quality tier so adaptive bitrate never drops to 234p | [600723](https://greasyfork.org/en/scripts/600723) |
 
 Source files live in `scripts/`, one per script, named `<name>.user.js`.
+
+Code shared by several scripts lives in `libraries/` and is published on
+Greasyfork as a library, which scripts load with `@require`:
+
+| Library | Used by | Greasyfork |
+| --- | --- | --- |
+| Feishu Lite Blocker | Feishu Messenger Lite, Feishu Docs Lite | [601258](https://greasyfork.org/en/scripts/601258) |
+
+A library change reaches a script only when the script's `@require` URL points
+at the new library version, so update the URL and bump the script too.
 
 ## Changing a script
 
