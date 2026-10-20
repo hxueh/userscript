@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.9.1
+// @version      0.9.2
 // @description  Gives Feishu's web messenger (/next/messenger) and contacts (/next/contacts) an iOS and macOS 27 look with Liquid Glass panels, chat and contact rows, menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Shrinks the tab menu to icons, with a button to expand it. Makes the chat list and the contact group list five pinned chats wide by default; drag the divider to resize them. Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list, chats and contact lists full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
 // @description:zh-CN 为飞书网页版消息（/next/messenger）和通讯录（/next/contacts）加入 iOS 与 macOS 27 风格：液态玻璃面板、会话与联系人卡片、菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。将标签栏缩为仅显示图标，并提供展开按钮。会话列表和联系人分组列表默认宽度为五个置顶会话，可拖动分隔线调整。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表、会话和联系人列表，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
@@ -114,27 +114,11 @@
     }
 
     // ---------------------------------------------------------------------
-    // Request blocker, from the shared Feishu Lite Blocker library (see
-    // @require, always the latest version). It blocks Tea/Rangers analytics,
-    // Slardar monitoring and marketing tags. The messenger also loads its own
-    // copy of Slardar, accessibility-testing tooling and the Security Policy
-    // SDK file, which are added here. The IM gateway, WebSocket, passport
-    // heartbeat and file CDNs are not touched. Only Messenger and Contacts
-    // routes are blocked.
+    // The shared blocker includes all Messenger Lite rules. Keep the route
+    // check here because Feishu can navigate to other apps without a reload.
+    // The IM gateway, WebSocket, passport and file CDNs remain available.
     // ---------------------------------------------------------------------
-    FeishuLiteBlocker.install({
-        when: onFeishuPage,
-        patterns: [
-            // The messenger's own Slardar copy (about 90 KB), loaded by the HTML.
-            '/web-client-next/p/static/js/slardar\\.[0-9a-f]+\\.js',
-            // Accessibility-testing tooling; readers and keyboards do not need it.
-            '/accessibility-task-platform/',
-            // The Security Policy SDK file only (the path has a double slash),
-            // not the policy APIs that login and messages use.
-            '/lmp/scs/+policy-sdk(?:-[0-9][0-9A-Za-z._-]*)?\\.js(?:[?#]|$)',
-        ],
-        stubs: ['lintrk'],
-    });
+    FeishuLiteBlocker.install({ when: onFeishuPage });
 
     // ---------------------------------------------------------------------
     // Theme. Feishu's Universe Design (UD) components have stable ud__* class

@@ -2,9 +2,9 @@
 // @name         Feishu Docs Lite
 // @name:zh-CN   飞书文档精简
 // @namespace    https://github.com/hxueh
-// @version      0.1.1
-// @description  Makes Feishu Docs lighter and calmer, starting with the Wiki (/wiki and /wiki/*). Blocks Tea/Rangers analytics and Slardar monitoring before they load, and stops their global error and long-task observers. Recolours the whole app with Solarized Light by day and Apple dark mode by night, following the system theme, and uses the system font. Your company's watermark, security policy and audit features are not changed.
-// @description:zh-CN 让飞书文档更轻、更安静，先支持知识库（/wiki 与 /wiki/*）。在加载前拦截 Tea/Rangers 统计和 Slardar 监控，并停止它们的全局错误与长任务监听。跟随系统主题，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色，并使用系统字体。不改动企业水印、安全策略和审计功能。
+// @version      0.1.2
+// @description  Makes Feishu Docs lighter and calmer, starting with the Wiki (/wiki and /wiki/*). Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers, accessibility-testing tooling and the Security Policy SDK before they load, and stops their global error and long-task observers. Recolours the whole app with Solarized Light by day and Apple dark mode by night, following the system theme, and uses the system font. Your company's watermark and audit features are not changed.
+// @description:zh-CN 让飞书文档更轻、更安静，先支持知识库（/wiki 与 /wiki/*）。在加载前拦截 Tea/Rangers 统计、Slardar 监控、广告追踪、无障碍测试工具和 Security Policy SDK，并停止它们的全局错误与长任务监听。跟随系统主题，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色，并使用系统字体。不改动企业水印和审计功能。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico

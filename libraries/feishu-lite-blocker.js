@@ -2,9 +2,9 @@
 // @name         Feishu Lite Blocker
 // @name:zh-CN   飞书精简拦截库
 // @namespace    https://github.com/hxueh
-// @version      1.0.0
-// @description  Library for the Feishu Lite userscripts. Blocks Tea/Rangers analytics, Slardar monitoring and third-party marketing tags on Feishu pages before they load, and turns their globals into harmless stubs. Load it with @require and @run-at document-start, then call FeishuLiteBlocker.install().
-// @description:zh-CN 飞书精简系列用户脚本的公共库。在飞书页面加载前拦截 Tea/Rangers 统计、Slardar 监控和第三方营销代码，并把它们的全局对象替换为无害的空实现。用 @require 引入并以 @run-at document-start 运行，然后调用 FeishuLiteBlocker.install()。
+// @version      1.1.0
+// @description  Library for the Feishu Lite userscripts. Blocks Tea/Rangers analytics, Slardar monitoring, accessibility-testing tooling, the Security Policy SDK and third-party marketing tags on Feishu pages before they load, and turns their globals into harmless stubs. Load it with @require and @run-at document-start, then call FeishuLiteBlocker.install().
+// @description:zh-CN 飞书精简系列用户脚本的公共库。在飞书页面加载前拦截 Tea/Rangers 统计、Slardar 监控、无障碍测试工具、Security Policy SDK 和第三方营销代码，并把它们的全局对象替换为无害的空实现。用 @require 引入并以 @run-at document-start 运行，然后调用 FeishuLiteBlocker.install()。
 // @author       hxueh
 // @license      MIT
 // ==/UserScript==
@@ -27,9 +27,9 @@
 var FeishuLiteBlocker = (function () {
     'use strict';
 
-    // Analytics and monitoring that every Feishu web app loads. The IM
-    // gateway, WebSocket, passport, file CDNs and the company security
-    // features (policy SDK, watermark, audit reporter) are not in this list.
+    // Share all rules from Messenger Lite 0.8.1 so each consumer blocks the
+    // same optional scripts. The IM gateway, WebSocket, passport, file CDNs,
+    // policy APIs, watermark and audit reporter are not in this list.
     const BASE_PATTERNS = [
         // Tea / Rangers analytics: event uploads, SDK settings, web ID, plugins.
         '//mcs(?:-[a-z0-9-]+)?\\.(?:feishu\\.cn|larksuite\\.com|zijieapi\\.com)/',
@@ -37,6 +37,13 @@ var FeishuLiteBlocker = (function () {
         // Slardar performance and error monitor: SDK, plugins, settings, uploads.
         '//[^/]*bytedapm\\.com/', '/slardar/fe/sdk-web/', '//slardar[^/]*\\.(?:feishu\\.cn|larksuite\\.com)/',
         '/monitor_(?:browser|web)/(?:collect|settings)', '//mon\\.(?:zijieapi|snssdk|tiktokv)\\.com/',
+        // Messenger's bundled Slardar copy is separate from the shared SDK.
+        '/web-client-next/p/static/js/slardar\\.[0-9a-f]+\\.js',
+        // Block the test tooling; screen readers and keyboards do not need it.
+        '/accessibility-task-platform/',
+        // Match only the SDK file, including its double-slash path. Policy
+        // APIs used by login and messaging must still reach the server.
+        '/lmp/scs/+policy-sdk(?:-[0-9][0-9A-Za-z._-]*)?\\.js(?:[?#]|$)',
         // Third-party marketing tags.
         '//www\\.googletagmanager\\.com/', '//(?:www|ssl)\\.google-analytics\\.com/',
         '//(?:px\\.ads|snap)\\.licdn\\.com/', '//px\\.ads\\.linkedin\\.com/', '//hm\\.baidu\\.com/',
@@ -191,7 +198,7 @@ var FeishuLiteBlocker = (function () {
         if (document.readyState === 'loading') guardParser();
         // Stubs for globals that inline snippets call, so they do not throw.
         const noop = () => {};
-        for (const name of ['gtag', 'ga', 'collectEvent', ...stubs]) {
+        for (const name of ['gtag', 'ga', 'collectEvent', 'lintrk', ...stubs]) {
             if (!window[name]) window[name] = noop;
         }
         if (when() && !window.Slardar) window.Slardar = sink;
