@@ -2,9 +2,9 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.6.1
-// @description  Gives Feishu's web messenger (/next/messenger) and contacts (/next/contacts) an iOS and macOS 27 look with Liquid Glass panels, chat and contact rows, menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list, chats and contact lists full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
-// @description:zh-CN 为飞书网页版消息（/next/messenger）和通讯录（/next/contacts）加入 iOS 与 macOS 27 风格：液态玻璃面板、会话与联系人卡片、菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表、会话和联系人列表，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
+// @version      0.7.0
+// @description  Gives Feishu's web messenger (/next/messenger) and contacts (/next/contacts) an iOS and macOS 27 look with Liquid Glass panels, chat and contact rows, menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Shrinks the tab menu to icons, with a button to expand it. Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list, chats and contact lists full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
+// @description:zh-CN 为飞书网页版消息（/next/messenger）和通讯录（/next/contacts）加入 iOS 与 macOS 27 风格：液态玻璃面板、会话与联系人卡片、菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。将标签栏缩为仅显示图标，并提供展开按钮。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表、会话和联系人列表，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -823,6 +823,59 @@ html.fml .appNavbar .appNavbar-search-input {
     border-radius: 999px !important;
     box-shadow: var(--fml-glass-edge) !important;
 }
+/* Collapsed tab menu (the default): 62px wide with icons only. The glass
+   starts 6px from the left, so the content is shifted 3px right
+   (padding 11px left, 5px right) to centre it on the glass. The script's
+   button below the tabs adds html.fml-nav-expanded, which restores
+   Feishu's own 156px layout with labels. */
+html.fml .appNavbar { transition: width .2s ease, min-width .2s ease, max-width .2s ease; }
+html.fml:not(.fml-nav-expanded) .appNavbar { width: 62px !important; min-width: 62px !important; max-width: 62px !important; }
+/* The avatar and the "+" button stack in a column. */
+html.fml:not(.fml-nav-expanded) .appNavbar-navHeader {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    height: auto !important;
+    padding: 14px 0 10px 6px !important;
+}
+html.fml:not(.fml-nav-expanded) .quick-jump-enter { margin: 0 !important; }
+html.fml:not(.fml-nav-expanded) :is(.appNavbar-search-input-wrapper, .appNavbar-navbarMenu) { padding: 0 5px 0 11px !important; }
+html.fml:not(.fml-nav-expanded) :is(.appNavbar-search-input, .navbarMenu) { justify-content: center; padding: 0 !important; }
+html.fml:not(.fml-nav-expanded) :is(.search-input-box-desc, .search-input-box-shortcut, .navbarMenu-content) { display: none !important; }
+/* The unread badge moves from the end of the row to the icon's corner. */
+html.fml:not(.fml-nav-expanded) .navbarMenu-badge {
+    position: absolute !important;
+    top: -3px;
+    right: -1px;
+    margin: 0 !important;
+    transform: scale(.85);
+}
+/* The account switcher at the bottom, centred on the glass. */
+html.fml:not(.fml-nav-expanded) .appNavbar_bottomList { width: 100% !important; }
+html.fml:not(.fml-nav-expanded) .navItem-userAuthList { left: 6px !important; width: 56px !important; padding: 0 !important; }
+html.fml:not(.fml-nav-expanded) :is(.user-auth-list, .user-auth-list_listContent) { justify-content: center !important; padding: 0 !important; }
+html.fml:not(.fml-nav-expanded) .user-auth-list_item { margin: 0 !important; }
+/* The expand and collapse button, below the tabs, in the same capsule shape. */
+.fml-nav-toggle { display: none; }
+html.fml .fml-nav-toggle {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 32px;
+    margin: 8px 0 0;
+    padding: 0 0 0 19px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-caption);
+    cursor: pointer;
+    transition: background-color .15s ease;
+}
+html.fml .fml-nav-toggle:hover { background: var(--fill-hover); }
+html.fml:not(.fml-nav-expanded) .fml-nav-toggle { justify-content: center; padding: 0; }
+html.fml .fml-nav-toggle svg { width: 16px; height: 16px; transition: transform .2s ease; }
+/* The chevrons point right to expand and left to collapse. */
+html.fml.fml-nav-expanded .fml-nav-toggle svg { transform: scaleX(-1); }
 /* The chat header and the message box sit above and below the message
    scroller, not over it, so a backdrop blur would only blur the static
    panel. A plain tint looks the same and keeps them off the GPU. */
@@ -1118,6 +1171,7 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
         const roots = pending;
         pending = [];
         if (!onFeishuPage()) return;
+        placeNavToggle();
         for (const root of roots) if (root.isConnected && !root.closest(SKIP)) scan(root);
     };
     const observer = new MutationObserver((records) => {
@@ -1463,6 +1517,58 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     window.addEventListener('resize', () => { if (active) syncMobile(); });
 
     // ---------------------------------------------------------------------
+    // Tab menu (the sidebar with Messenger, Docs, Calendar and the rest).
+    // It is narrow and shows icons only by default. A button below the tabs
+    // expands it to Feishu's width with labels, and collapses it again. The
+    // choice is kept in localStorage for the next visit.
+    // ---------------------------------------------------------------------
+    const NAV_KEY = 'fml.navExpanded';
+    let navExpanded = false;
+    try { navExpanded = localStorage.getItem(NAV_KEY) === '1'; } catch { /* storage blocked: stay collapsed */ }
+    const navToggle = document.createElement('button');
+    navToggle.className = 'fml-nav-toggle';
+    navToggle.type = 'button';
+    navToggle.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 4 4 4-4 4M9 4l4 4-4 4"/></svg>';
+    const applyNav = () => {
+        document.documentElement.classList.toggle('fml-nav-expanded', navExpanded);
+        const label = navExpanded ? 'Collapse tab menu' : 'Expand tab menu';
+        navToggle.title = label;
+        navToggle.setAttribute('aria-label', label);
+        navToggle.setAttribute('aria-expanded', String(navExpanded));
+        // Expanded tabs show their labels, so the tooltips set below go.
+        if (navExpanded) {
+            for (const el of document.querySelectorAll('[data-fml-tip]')) {
+                el.removeAttribute('title');
+                el.removeAttribute('data-fml-tip');
+            }
+        }
+    };
+    navToggle.addEventListener('click', () => {
+        navExpanded = !navExpanded;
+        try { localStorage.setItem(NAV_KEY, navExpanded ? '1' : '0'); } catch { /* not kept */ }
+        applyNav();
+    });
+    whenRoot(applyNav);
+    // The button goes at the end of Feishu's tab list. React keeps a node
+    // that it did not create, but a re-render of the list can drop it, so
+    // the observer's flush puts it back.
+    const placeNavToggle = () => {
+        const menu = document.querySelector('.appNavbar-navbarMenu');
+        if (menu && navToggle.parentElement !== menu) menu.appendChild(navToggle);
+    };
+    // A collapsed tab has no label, so its label becomes the hover tooltip.
+    document.addEventListener('mouseover', (e) => {
+        if (!active || navExpanded || !(e.target instanceof Element)) return;
+        const item = e.target.closest('.navbarMenu, .appNavbar-search-input');
+        if (!item || item.hasAttribute('data-fml-tip')) return;
+        const label = item.querySelector('.navbarMenu-content, .search-input-box-desc')?.textContent.trim();
+        if (label) {
+            item.title = label;
+            item.setAttribute('data-fml-tip', '');
+        }
+    }, true);
+
+    // ---------------------------------------------------------------------
     // Route tracking: the theme and the observer are on only on /next/messenger
     // and /next/contacts.
     // ---------------------------------------------------------------------
@@ -1484,6 +1590,7 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
             observer.observe(document.documentElement, { childList: true, subtree: true });
             if (document.body) scan(document.body);
             bootPrefetch();
+            placeNavToggle();
             if (feedStore) sweep();
             syncMobile();
             // <body> may not exist yet at document-start.
