@@ -2,12 +2,14 @@ name: Version bump
 
 # Greasyfork serves an update to users only when @version changes, so a
 # script edited without a bump would sync silently and never reach anyone.
+# Libraries are pinned by version in each script's @require URL, so they
+# need a new version too.
 on:
   pull_request:
-    paths: ['scripts/*.user.js']
+    paths: ['scripts/*.user.js', 'libraries/*.js']
   push:
     branches: [main]
-    paths: ['scripts/*.user.js']
+    paths: ['scripts/*.user.js', 'libraries/*.js']
 
 jobs:
   check:
@@ -24,7 +26,7 @@ jobs:
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then exit 0; fi
           ver() { sed -n 's|^// @version[[:space:]]*||p' | head -n1; }
           status=0
-          for f in $(git diff --name-only --diff-filter=M "$BASE" HEAD -- 'scripts/*.user.js'); do
+          for f in $(git diff --name-only --diff-filter=M "$BASE" HEAD -- 'scripts/*.user.js' 'libraries/*.js'); do
             old=$(git show "$BASE:$f" | ver)
             new=$(ver < "$f")
             if [ "$old" = "$new" ]; then

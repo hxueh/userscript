@@ -5,8 +5,10 @@ list and the Greasyfork setup.
 
 ## Layout
 
-- `scripts/*.user.js` holds one userscript per file. This is the only place
-  script code lives.
+- `scripts/*.user.js` holds one userscript per file.
+- `libraries/*.js` holds code shared by several scripts, published on
+  Greasyfork as libraries. A script loads one with `@require` and a
+  versioned Greasyfork URL. Do not use `lib/` (it is in the global gitignore).
 - `.github/workflows/version-bump.yml` fails a push or PR that changes a script
   without changing its `@version`.
 
@@ -21,6 +23,15 @@ list and the Greasyfork setup.
   renaming a file breaks the sync until the URL is updated on Greasyfork.
 - Touch only the scripts you mean to change. The webhook re-syncs every script
   whose file appears in the pushed commits.
+
+## Changing a library
+
+- Bump the library's `@version`, push, and wait for Greasyfork to sync it.
+- Then point each script's `@require` at the new versioned URL
+  (`https://update.greasyfork.org/scripts/<id>/<version>/<file>.js`) and bump
+  the script's `@version`. A script keeps the old library until you do this.
+- Keep the library's API backward compatible, so a script with an older
+  `@require` still works.
 
 ## Publishing
 
