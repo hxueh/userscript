@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.2.4
+// @version      0.2.5
 // @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Tokyo Night by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Switches with Feishu's own light and dark theme.
 // @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Tokyo Night 配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
@@ -534,6 +534,28 @@ html.fml :is(
 ), html.fml .fml-hidden {
     display: none !important;
 }
+
+/* ---- Chat list: "Done" (archive) button ------------------------------- */
+/* The button is an overlay on the right of each row that Feishu shows only
+   on hover (opacity 0). Show it on every row, without its gradient, and
+   reserve space so it does not cover the time and the unread badge. The
+   selectors use the row's stable a11y_* classes and the DOM structure,
+   because the other class names are hashed. */
+html.fml .a11y_feed_card_main { padding-inline-end: 26px; }
+html.fml .a11y_feed_card_main + div > div {
+    opacity: 1 !important;
+    width: 28px !important;
+}
+html.fml .a11y_feed_card_main + div > div::before,
+html.fml .a11y_feed_card_main + div > div::after { display: none !important; }
+/* Archiving: Feishu fades the row (a 0.3 s opacity transition), collapses
+   its wrapper to 0 height (a 0.3 s animation that keeps its end state),
+   slides the rows below up (an inline transform transition), and removes
+   the row later. With no transitions and a 1 ms animation, the row has
+   no height in the next frame, so it leaves the list at once. */
+html.fml .a11y_feed_main_list .list_items > div > div > div { animation-duration: 1ms !important; }
+html.fml .a11y_feed_main_list .list_items > div { transition: none !important; }
+html.fml .a11y_feed_card_item, html.fml .a11y_feed_card_item > * { transition: none !important; }
 
 /* ---- Scrollbars: thin overlay bars, as on macOS ----------------------- */
 html.fml * { scrollbar-width: thin; scrollbar-color: rgba(128, 128, 128, .45) transparent; }
