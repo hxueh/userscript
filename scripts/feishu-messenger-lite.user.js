@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.1.0
+// @version      0.1.1
 // @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font. Blocks the Tea/Rangers analytics, Slardar monitoring and ad trackers, and removes "Download Feishu". Follows Feishu's own light and dark theme.
 // @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体。拦截 Tea/Rangers 统计、Slardar 监控和广告追踪，并移除“下载飞书”。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
@@ -220,8 +220,10 @@ html.fml ::-webkit-scrollbar-track, html.fml ::-webkit-scrollbar-corner { backgr
 html.fml :is(
     .ud__popover__content, .ud__popover-inner, .ud__dropdown__menu, .ud__dropdown-menu,
     .ud__menu, .ud__select__dropdown, .ud__select-dropdown, .ud__cascader__dropdown,
-    .ud__tooltip__content, .ud__tooltip-inner, .ud__toast, .ud__message__notice,
-    .ud__notification__notice, [role="menu"], [role="tooltip"]
+    .ud__toast, .ud__message__notice, .ud__notification__notice, [role="menu"],
+    /* Messenger's own menus are not UD components: the right-click menu on
+       a chat and the "+" (new group, new doc, ...) menu. */
+    .larkc-contextMenu-wrapper, .quick-jump-menu
 ) {
     background: color-mix(in srgb, var(--bg-float, #fff) 72%, transparent) !important;
     -webkit-backdrop-filter: var(--fml-glass-filter) !important;
@@ -230,6 +232,26 @@ html.fml :is(
     border-radius: var(--fml-radius-m) !important;
     corner-shape: squircle;
     box-shadow: var(--fml-glass-edge), var(--fml-glass-shadow) !important;
+}
+/* Tooltips have white text on a dark panel (--bg-tips), in both themes, so
+   their glass is a dark tint. The light tint above made the text invisible.
+   UD nests a .ud__tooltip-content inside .ud__tooltip__content, so only the
+   outer panel gets the glass and the inner one stays clear; otherwise the
+   two layers stack and the tint doubles. */
+html.fml :is(.ud__tooltip__content, .ud__tooltip-inner, [role="tooltip"]) {
+    background: color-mix(in srgb, var(--bg-tips, #1f2329) 78%, transparent) !important;
+    -webkit-backdrop-filter: var(--fml-glass-filter) !important;
+    backdrop-filter: var(--fml-glass-filter) !important;
+    border: 0 !important;
+    border-radius: var(--fml-radius-s) !important;
+    corner-shape: squircle;
+    box-shadow: var(--fml-glass-shadow) !important;
+}
+html.fml :is(.ud__tooltip__content, .ud__tooltip-inner, [role="tooltip"]) :is(.ud__tooltip-content, .ud__tooltip-inner, [role="tooltip"]) {
+    background: transparent !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
 }
 /* Arrows on popovers and tooltips do not match a blurred, rounded panel. */
 html.fml :is(.ud__popover__arrow, .ud__popover-arrow, .ud__tooltip__arrow, .ud__tooltip-arrow) { display: none !important; }
@@ -301,9 +323,12 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     html.fml :is(
         .ud__popover__content, .ud__popover-inner, .ud__dropdown__menu, .ud__dropdown-menu,
         .ud__menu, .ud__select__dropdown, .ud__select-dropdown, .ud__cascader__dropdown,
-        .ud__tooltip__content, .ud__tooltip-inner, .ud__toast, .ud__message__notice,
-        .ud__notification__notice, [role="menu"], [role="tooltip"]
+        .ud__toast, .ud__message__notice, .ud__notification__notice, [role="menu"],
+        .larkc-contextMenu-wrapper, .quick-jump-menu
     ) { background: var(--bg-float, #fff) !important; }
+    html.fml :is(.ud__tooltip__content, .ud__tooltip-inner, [role="tooltip"]) {
+        background: var(--bg-tips, #1f2329) !important;
+    }
 }
 `;
 
