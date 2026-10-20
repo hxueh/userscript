@@ -2,9 +2,9 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.2.5
-// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Tokyo Night by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Switches with Feishu's own light and dark theme.
-// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Tokyo Night 配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。跟随飞书自身的浅色与深色主题。
+// @version      0.3.0
+// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Tokyo Night by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Switches with Feishu's own light and dark theme.
+// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Tokyo Night 配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -967,6 +967,230 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     }
 
     // ---------------------------------------------------------------------
+    // Background prefetch, built on Feishu's own code so that it reads and
+    // writes nothing Feishu would not:
+    // - The chat list loads 15 chats, then more as you scroll. The FeedList
+    //   component's own loadmore() loads the rest without scrolling.
+    // - "Collapsed Chats" (the folded chats) is one entry that Feishu sorts
+    //   by time. A wrapper on the feed store's getState() moves it to the
+    //   end of the list.
+    // - Feishu's message service can sync a chat's latest messages into the
+    //   IM SDK without showing them (needResponse: false), so the chat opens
+    //   from local data. This runs for chats that are not folded and have
+    //   fewer than 100 members, one at a time, in idle time, and again only
+    //   when the chat has a new message. It does not mark anything as read;
+    //   a check below turns it off if that ever changes.
+    // It runs every few minutes and soon after Feishu receives new messages
+    // (the store changes when a push arrives).
+    // ---------------------------------------------------------------------
+    const PREFETCH_MAX_MEMBERS = 100;
+    const SWEEP_MS = 5 * 60 * 1000;
+    const PREFETCH_GAP_MS = 300;
+
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    // Wait for the browser to be idle, so that the work never competes with
+    // scrolling, typing or rendering.
+    const idle = () => new Promise((resolve) => {
+        if (window.requestIdleCallback) requestIdleCallback(() => resolve(), { timeout: 3000 });
+        else setTimeout(resolve, 50);
+    });
+
+    let feedStore = null;
+    let messageService;   // undefined: not looked up yet; null: not found
+    let prefetchOff = false;
+    const prefetched = new Map(); // chat id -> last message position already synced
+    const queue = [];
+    const queued = new Set();
+    let pumping = false;
+
+    // Feishu's modules are not global. Pushing a chunk with a runtime
+    // callback into its webpack queue hands back the module loader; the
+    // message service is then found by its source text, because module ids
+    // change with every Feishu build.
+    const findMessageService = () => {
+        const chunks = window.webpackChunkLarkletMessenger;
+        if (!chunks) return null;
+        let req = null;
+        chunks.push([[Symbol('fml')], {}, (r) => { req = r; }]);
+        if (!req) return null;
+        for (const id in req.m) {
+            if (!Function.prototype.toString.call(req.m[id]).includes('getChatMessages:async function')) continue;
+            const service = req(id)?.default;
+            if (typeof service?.getChatMessages === 'function') return service;
+        }
+        return null;
+    };
+
+    const moveBoxLast = (store) => {
+        const getState = store.getState;
+        let lastIn = null;
+        let lastOut = null;
+        store.getState = function () {
+            const state = getState.apply(this, arguments);
+            if (!active) return state;
+            // React and Feishu call getState very often. The result is
+            // cached per state object, so most calls cost one comparison and
+            // selectors still see a stable object.
+            if (state === lastIn) return lastOut;
+            lastIn = lastOut = state;
+            const box = state?.status?.boxEntryId;
+            const list = state?.message?.list;
+            const items = list?.items;
+            if (box && items?.length && items[items.length - 1] !== box) {
+                const i = items.indexOf(box);
+                if (i >= 0) {
+                    const moved = items.slice();
+                    moved.splice(i, 1);
+                    moved.push(box);
+                    lastOut = { ...state, message: { ...state.message, list: { ...list, items: moved } } };
+                }
+            }
+            return lastOut;
+        };
+        // An action no reducer knows makes the list read the new order.
+        store.dispatch({ type: 'fml/refresh' });
+    };
+
+    // The FeedList component's props hold loadmore() for the list on screen.
+    const feedListProps = () => {
+        const el = document.querySelector('.a11y_feed_main_list');
+        if (!el) return null;
+        const key = Object.keys(el).find((k) => k.startsWith('__reactInternalInstance') || k.startsWith('__reactFiber'));
+        for (let f = key && el[key], i = 0; f && i < 20; f = f.return, i++) {
+            if (typeof f.memoizedProps?.loadmore === 'function') return f.memoizedProps;
+        }
+        return null;
+    };
+
+    const waitForStore = (test, ms) => new Promise((resolve) => {
+        if (test()) { resolve(true); return; }
+        let unsubscribe = null;
+        const timer = setTimeout(() => { unsubscribe(); resolve(false); }, ms);
+        unsubscribe = feedStore.subscribe(() => {
+            if (!test()) return;
+            clearTimeout(timer);
+            unsubscribe();
+            resolve(true);
+        });
+    });
+
+    // Load the rest of the chat list. A feed cursor with id "0" marks the end.
+    const prefetchFeed = async () => {
+        for (let page = 0; page < 30 && active; page++) {
+            const state = feedStore.getState();
+            const list = state.message?.list;
+            if (!list || list.loading || list.feedCursor?.id === '0') return;
+            // loadmore() loads the filter on screen; only the Chats list is wanted.
+            if (state.status?.activeFilterType !== state.message.type) return;
+            const props = feedListProps();
+            if (!props) return;
+            const before = list.items.length;
+            props.loadmore();
+            const loaded = await waitForStore(() => {
+                const l = feedStore.getState().message?.list;
+                return l && !l.loading && (l.items.length !== before || l.feedCursor?.id === '0');
+            }, 5000);
+            if (!loaded) return;
+            await idle();
+        }
+    };
+
+    // Chats in the main list that are not in "Collapsed Chats", have fewer
+    // than 100 members (0 for one-to-one chats), are not open, and have a
+    // message that has not been synced yet.
+    const prefetchCandidates = () => {
+        const state = feedStore.getState();
+        const out = [];
+        for (const id of state.message?.list?.items || []) {
+            const p = state.previews?.[id];
+            if (!p || p.type !== 1 || p.parentCardId || p.isMember === false) continue;
+            if ((p.userCount || 0) >= PREFETCH_MAX_MEMBERS || id === state.status?.activeFeedId) continue;
+            if (prefetched.get(id) === p.lastMessagePosition) continue;
+            out.push(id);
+        }
+        return out;
+    };
+
+    // Safety check: a sync must not move the chat's read position. If it
+    // does while the chat is not open, stop prefetching for this page load.
+    const checkReadPosition = (id, before) => {
+        setTimeout(() => {
+            const state = feedStore.getState();
+            const p = state.previews?.[id];
+            if (p && p.readPosition > before && state.status?.activeFeedId !== id) {
+                prefetchOff = true;
+                console.warn('[Feishu Messenger Lite] Chat prefetch stopped: a read position changed after a prefetch.');
+            }
+        }, 3000);
+    };
+
+    // One chat at a time, each after an idle period and a short gap, so the
+    // IM SDK is never busy with prefetch when Feishu needs it.
+    const pump = async () => {
+        pumping = true;
+        while (queue.length && active && !prefetchOff) {
+            await idle();
+            const id = queue.shift();
+            queued.delete(id);
+            const p = feedStore.getState().previews?.[id];
+            if (!p || id === feedStore.getState().status?.activeFeedId) continue;
+            try {
+                await messageService.getChatMessages({ chatId: id, count: 20, needResponse: false });
+                prefetched.set(id, p.lastMessagePosition);
+                checkReadPosition(id, p.readPosition);
+            } catch { /* skipped; the next sweep tries again */ }
+            await sleep(PREFETCH_GAP_MS);
+        }
+        pumping = false;
+    };
+
+    const enqueuePrefetch = () => {
+        if (!messageService || prefetchOff || !active) return;
+        for (const id of prefetchCandidates()) {
+            if (queued.has(id)) continue;
+            queued.add(id);
+            queue.push(id);
+        }
+        if (queue.length && !pumping) pump();
+    };
+
+    const sweep = async () => {
+        if (!active || !feedStore) return;
+        await idle();
+        await prefetchFeed();
+        if (messageService === undefined) messageService = findMessageService();
+        enqueuePrefetch();
+    };
+
+    // A push (new message, read on another device and so on) changes the
+    // store. Changes come in bursts, so they are handled at most every 2 s.
+    let pushTimer = 0;
+    const onStoreChange = () => {
+        if (pushTimer || !active) return;
+        pushTimer = setTimeout(() => { pushTimer = 0; enqueuePrefetch(); }, 2000);
+    };
+
+    // The feed store and the list appear some seconds after the page loads.
+    let booting = false;
+    const bootPrefetch = async () => {
+        if (feedStore || booting) return;
+        booting = true;
+        for (let i = 0; i < 120 && !feedStore; i++) {
+            const store = window.__feedStore;
+            if (store?.getState && store.subscribe && document.querySelector('.a11y_feed_main_list')) {
+                feedStore = store;
+                moveBoxLast(store);
+                store.subscribe(onStoreChange);
+                setInterval(sweep, SWEEP_MS);
+                sweep();
+                break;
+            }
+            await sleep(1000);
+        }
+        booting = false;
+    };
+
+    // ---------------------------------------------------------------------
     // Route tracking: the theme and the observer are on only on /next/messenger.
     // ---------------------------------------------------------------------
     let active = false;
@@ -978,6 +1202,8 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
         if (want) {
             observer.observe(document.documentElement, { childList: true, subtree: true });
             if (document.body) scan(document.body);
+            bootPrefetch();
+            if (feedStore) sweep();
         } else {
             observer.disconnect();
             pending = [];
