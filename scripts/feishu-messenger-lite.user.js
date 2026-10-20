@@ -2,9 +2,9 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.4.0
-// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. On iPhone (Safari with "Request Desktop Website"), shows the chat list and chats full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
-// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。在 iPhone 上（Safari 开启“请求桌面网站”）全屏显示会话列表和会话，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
+// @version      0.5.0
+// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list and chats full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
+// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表和会话，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -14,7 +14,9 @@
 // @noframes
 // ==/UserScript==
 
-(() => {
+// The script is a named function so that, on a phone, it can run itself a
+// second time on the desktop page it loads (see loadDesktopApp below).
+(function fml(desktopLoaded) {
     'use strict';
 
     // Add ?fml=off to the URL to see the original page, for example to check
@@ -24,6 +26,87 @@
     // Feishu is one single-page app across Messenger, Docs, Calendar and the
     // rest, so every part of this script checks the route first.
     const onMessenger = () => location.pathname.startsWith('/next/messenger');
+
+    // ---------------------------------------------------------------------
+    // Phones. Feishu's server answers a phone user agent with a small
+    // "unsupported browser" page that has no messenger in it, and a script
+    // cannot change the user agent of the page request. It can fetch the
+    // page again with a Mac Safari User-Agent header (WebKit sends a header
+    // set by fetch), then replace the error page with the result. Feishu's
+    // code then reads navigator.userAgent and navigator.platform, so those
+    // report the same Mac. Touch support is left as it is, so the phone
+    // layout below still turns on. With Safari's "Request Desktop Website",
+    // the user agent is already a Mac and none of this runs.
+    // ---------------------------------------------------------------------
+    //
+    // Feishu's own code has a second check: a "Mac" with more than two touch
+    // points is an iPad, and the iPad web version is refused. An iPhone in
+    // Safari's desktop mode looks exactly like that, so maxTouchPoints
+    // reports 0 to Feishu on any touch device that claims to be a Mac. The
+    // real value is kept for the phone layout (the second run of this
+    // function reads it from REAL_TOUCH_KEY, because by then the property
+    // reports 0).
+    const REAL_TOUCH_KEY = Symbol.for('fml.maxTouchPoints');
+    if (window[REAL_TOUCH_KEY] === undefined) window[REAL_TOUCH_KEY] = navigator.maxTouchPoints;
+    const realTouchPoints = window[REAL_TOUCH_KEY];
+    const PHONE_UA = /iPhone|iPod|Android.+Mobile/i.test(navigator.userAgent);
+    const TOUCH_MAC = navigator.platform === 'MacIntel' && realTouchPoints > 1;
+    const DESKTOP_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15';
+    if ((PHONE_UA || TOUCH_MAC) && !desktopLoaded) {
+        const fake = [['maxTouchPoints', 0]];
+        if (PHONE_UA) fake.push(['userAgent', DESKTOP_UA], ['appVersion', DESKTOP_UA.slice(8)], ['platform', 'MacIntel']);
+        for (const [key, value] of fake) {
+            Object.defineProperty(Navigator.prototype, key, { configurable: true, get: () => value });
+        }
+    }
+    const showDesktopHint = () => {
+        const add = () => {
+            const note = document.createElement('div');
+            note.style.cssText = 'margin:24px 16px;padding:12px 14px;border-radius:12px;background:#f2f2f7;color:#1c1c1e;font:15px/1.5 -apple-system,sans-serif';
+            note.textContent = '飞书消息精简无法自动加载桌面版。请在 Safari 地址栏点「大小」→「请求桌面网站」。'
+                + ' Feishu Messenger Lite could not load the desktop app. In Safari, tap aA → Request Desktop Website.';
+            document.body.appendChild(note);
+        };
+        if (document.body) add();
+        else document.addEventListener('DOMContentLoaded', add, { once: true });
+    };
+    const loadDesktopApp = async () => {
+        let response;
+        let html;
+        try {
+            response = await fetch(location.href, {
+                credentials: 'include',
+                cache: 'no-store',
+                headers: { 'User-Agent': DESKTOP_UA },
+            });
+            html = await response.text();
+        } catch {
+            showDesktopHint();
+            return;
+        }
+        // Logged out: the server redirects to the login page.
+        if (new URL(response.url).pathname !== location.pathname) {
+            location.replace(response.url);
+            return;
+        }
+        // The header did not get through, so the server sent the error page again.
+        if (!html.includes('<html') || html.includes('app-shell-not-support')) {
+            showDesktopHint();
+            return;
+        }
+        // Stop the error page, start a new document, set up this script on
+        // it (before Feishu's scripts run, so the request blocker is in
+        // place), then write Feishu's desktop page into it.
+        window.stop();
+        document.open();
+        fml(true);
+        document.write(html);
+        document.close();
+    };
+    if (PHONE_UA && !desktopLoaded && onMessenger()) {
+        loadDesktopApp();
+        return;
+    }
 
     // ---------------------------------------------------------------------
     // Request blocker. It runs at document-start in the page (@grant none), so
@@ -1251,13 +1334,12 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     };
 
     // ---------------------------------------------------------------------
-    // Phone layout for iOS Safari. Feishu refuses phone browsers by their
-    // user agent on the server, so Safari must use "Request Desktop
-    // Website" for feishu.cn. Then the user agent says Mac, so the phone is
-    // found by touch support and screen size instead. A narrow window on a
+    // Phone layout for iOS Safari. The top of this script makes Feishu see
+    // a Mac, so the phone is found by its real touch support and screen
+    // size instead. A narrow window on a
     // computer gets the same layout.
     // ---------------------------------------------------------------------
-    const isMobile = () => (navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) <= 500)
+    const isMobile = () => (realTouchPoints > 0 && Math.min(screen.width, screen.height) <= 500)
         || window.innerWidth <= 640;
     let mobile = false;
 
@@ -1371,4 +1453,4 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     }
     window.addEventListener('popstate', sync);
     whenRoot(sync);
-})();
+})(false);
