@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.10.0
+// @version      0.10.1
 // @description  Gives Feishu's web messenger (/next/messenger) and contacts (/next/contacts) an iOS and macOS 27 look with Liquid Glass panels, chat and contact rows, menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring and ad trackers, and removes "Download Feishu". Shrinks the tab menu to icons, with a button to expand it. Makes the chat list and the contact group list five pinned chats wide by default; drag the divider to resize them. Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list, chats and contact lists full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
 // @description:zh-CN 为飞书网页版消息（/next/messenger）和通讯录（/next/contacts）加入 iOS 与 macOS 27 风格：液态玻璃面板、会话与联系人卡片、菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控和广告追踪，并移除“下载飞书”。将标签栏缩为仅显示图标，并提供展开按钮。会话列表和联系人分组列表默认宽度为五个置顶会话，可拖动分隔线调整。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表、会话和联系人列表，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
@@ -941,36 +941,76 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     whenRoot(() => (document.head || document.documentElement).appendChild(style));
 
     // ---------------------------------------------------------------------
-    // Light or dark. Feishu keeps its Appearance setting (Light, Dark or
-    // Follow System, in the avatar menu) in localStorage, but most of its
-    // CSS only reads the system theme. The script reads the setting and sets
-    // html.fml-dark, so the theme above follows Feishu's setting and you can
-    // switch without changing the browser or OS theme.
-    // ---------------------------------------------------------------------
-    const THEME_KEY = 'larkapi/next_lark_web_preference/lark.setting.theme';
+    // Light or dark. Most of Feishu's CSS reads only the system theme, so the
+    // script sets html.fml-dark from Feishu's Appearance setting instead, and
+    // you can switch without changing the browser or OS theme.
+    //
+    // Feishu has two Appearance settings (Light, Dark or Follow System): one
+    // in the Messenger avatar menu and one in the Docs "..." menu. They are
+    // saved apart and do not sync. Both Lite scripts use the most recent
+    // choice from either menu, so one switch changes Messenger and Docs.
+    // Follow System uses the browser or OS theme.
+    //
+    // - Messenger saves {"value":"DARK","lastTime":...} in MESSENGER_KEY.
+    // - Docs saves {"setting":"dark","sync":true,...} in DOCS_KEY when you
+    //   choose. It also rewrites the key without "sync" on every page load,
+    //   so only writes with "sync" count as a choice.
+    // - The latest choice and its time go in CHOICE_KEY, which both scripts
+    //   share because Messenger and Docs are on the same tenant domain.
+    const MESSENGER_KEY = 'larkapi/next_lark_web_preference/lark.setting.theme';
+    const DOCS_KEY = 'view_mode';
+    const CHOICE_KEY = 'feishu-lite-theme';
+    const CHOICES = ['light', 'dark', 'system'];
+    const setItem = Storage.prototype.setItem;
+    const parse = (text) => {
+        try { return JSON.parse(text); } catch { return text; }
+    };
+    const readKey = (key) => {
+        try { return parse(localStorage.getItem(key)); } catch { return null; }
+    };
+    const fromMessenger = (v) => ({ LIGHT: 'light', DARK: 'dark', FOLLOW_SYSTEM: 'system' })[v && typeof v === 'object' ? v.value : v] || null;
+    const fromDocs = (v) => (v && CHOICES.includes(v.setting) ? v.setting : null);
+    // A write to a Feishu key that is a real choice: [setting, time] or null.
+    const choiceOf = (key, text) => {
+        const v = parse(text);
+        if (key === MESSENGER_KEY) return fromMessenger(v) && [fromMessenger(v), +v?.lastTime || Date.now()];
+        if (key === DOCS_KEY && v?.sync) return fromDocs(v) && [fromDocs(v), Date.now()];
+        return null;
+    };
     const darkQuery = matchMedia('(prefers-color-scheme: dark)');
-    const themeSetting = () => {
-        // Stored as {"value":"DARK",...}; a plain string is also accepted.
-        let v = null;
-        try { v = localStorage.getItem(THEME_KEY); } catch { return null; }
-        try { v = JSON.parse(v); } catch { /* plain string */ }
-        return (v && typeof v === 'object' ? v.value : v) || null;
+    const wantDark = () => {
+        const saved = readKey(CHOICE_KEY);
+        // No choice made since the script was installed: use this page's own
+        // setting, then the other one.
+        const setting = CHOICES.includes(saved?.setting) ? saved.setting
+            : fromMessenger(readKey(MESSENGER_KEY)) || fromDocs(readKey(DOCS_KEY));
+        return setting === 'dark' || (setting !== 'light' && darkQuery.matches);
+    };
+    const remember = (choice) => {
+        if (!choice) return;
+        const [setting, time] = choice;
+        // An older write (for example Feishu saving an unchanged setting
+        // again) does not replace a newer choice.
+        if (!(time > (+readKey(CHOICE_KEY)?.time || 0))) return;
+        try { setItem.call(localStorage, CHOICE_KEY, JSON.stringify({ setting, time })); } catch { /* storage full or blocked */ }
+        applyTheme();
     };
     const applyTheme = () => {
-        const setting = themeSetting();
-        const dark = setting === 'DARK' || (setting !== 'LIGHT' && darkQuery.matches);
+        const dark = wantDark();
         whenRoot(() => document.documentElement.classList.toggle('fml-dark', dark));
     };
     applyTheme();
     darkQuery.addEventListener('change', applyTheme);
-    // Another tab changed the setting.
-    addEventListener('storage', (e) => { if (e.key === THEME_KEY || e.key === null) applyTheme(); });
-    // This tab changed it. The script runs in the page (@grant none), so
-    // wrapping setItem sees Feishu's own write at once.
-    const setItem = Storage.prototype.setItem;
+    // A choice made in another tab (the storage event fires only there).
+    addEventListener('storage', (e) => {
+        if (e.key === CHOICE_KEY || e.key === null) applyTheme();
+        else remember(choiceOf(e.key, e.newValue));
+    });
+    // A choice made in this tab. The script runs in the page (@grant none),
+    // so wrapping setItem sees Feishu's own write at once.
     Storage.prototype.setItem = function (key, value) {
         setItem.call(this, key, value);
-        if (key === THEME_KEY) applyTheme();
+        if (this === localStorage) remember(choiceOf(key, String(value)));
     };
 
     // ---------------------------------------------------------------------
