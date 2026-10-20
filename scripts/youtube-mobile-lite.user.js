@@ -4,7 +4,7 @@
 // @name:zh-TW   YouTube 行動版精簡：首頁與原生播放器
 // @name:ja      YouTube Mobile Lite：シンプルホーム＆ネイティブプレーヤー
 // @namespace    https://github.com/hxueh
-// @version      0.1.18
+// @version      0.1.19
 // @description  Rebuilds YouTube mobile with an iOS-style pure video feed (Recommended & Subscriptions), creator profiles, native comments, high-quality DASH/HLS playback, background audio, search, and playlists—with zero Shorts.
 // @description:zh-CN 将 YouTube 移动版重构为无 Shorts 的 iOS 风格纯视频流（推荐与订阅）、创作者主页与原生评论区，支持高画质 DASH/HLS、后台音频、搜索与播放列表。
 // @description:zh-TW 將 YouTube 行動版重構為無 Shorts 的 iOS 風格純影片流（推薦與訂閱）、創作者主頁與原生留言區，支援高畫質 DASH/HLS、背景音訊、搜尋與播放清單。
@@ -279,6 +279,7 @@
       nativePlayer: "原生播放器",
       selectPlaylistVideo: "选择播放列表视频",
       selectVideoQuality: "选择视频清晰度",
+      selectAudioTrack: "选择音轨",
       subtitlesLoading: "正在加载字幕…",
       subtitlesFailed: "字幕加载失败，请重新选择语言重试。",
       audioOnly: "仅音频",
@@ -392,6 +393,7 @@
       nativePlayer: "原生播放器",
       selectPlaylistVideo: "選擇播放清單影片",
       selectVideoQuality: "選擇影片畫質",
+      selectAudioTrack: "選擇音軌",
       subtitlesLoading: "正在載入字幕…",
       subtitlesFailed: "字幕載入失敗，請重新選擇語言重試。",
       audioOnly: "僅音訊",
@@ -505,6 +507,7 @@
       nativePlayer: "Native player",
       selectPlaylistVideo: "Select playlist video",
       selectVideoQuality: "Select video quality",
+      selectAudioTrack: "Select audio track",
       subtitlesLoading: "Loading subtitles…",
       subtitlesFailed: "Unable to load subtitles. Select a language to retry.",
       audioOnly: "Audio only",
@@ -618,6 +621,7 @@
       nativePlayer: "ネイティブプレーヤー",
       selectPlaylistVideo: "再生リストの動画を選択",
       selectVideoQuality: "画質を選択",
+      selectAudioTrack: "音声トラックを選択",
       subtitlesLoading: "字幕を読み込み中…",
       subtitlesFailed: "字幕を読み込めません。言語を選び直してください。",
       audioOnly: "音声のみ",
@@ -2826,6 +2830,11 @@
       autoplayButton.setAttribute("aria-label", enabled ? t("autoplayOn") : t("autoplayOff"));
     }
 
+    const audioTrackSelector = createElement("select", "ym-native-quality-selector");
+    audioTrackSelector.setAttribute("aria-label", t("selectAudioTrack"));
+    audioTrackSelector.hidden = true;
+    playerActions.appendChild(audioTrackSelector);
+
     const qualitySelector = createElement("select", "ym-native-quality-selector");
     qualitySelector.setAttribute("aria-label", t("selectVideoQuality"));
     qualitySelector.hidden = true;
@@ -2882,6 +2891,11 @@
     let dashManifestUrl = "";
     let currentDashCandidate = null;
     let selectedQualityMode = "auto";
+    let audioTracks = [];
+    let selectedAudioTrackId = "";
+    // Set only once the viewer picks a track, so a dub carries over to the next
+    // video while untouched playback stays on each video's original audio.
+    let preferredAudioLanguage = "";
     let videoFallbackPromise = null;
     let pendingVideoRestore = null;
     let videoLoadToken = 0;
@@ -3026,6 +3040,82 @@
       if (!tracks.some((item) => item.id === selectedSubtitleId)) selectedSubtitleId = "";
       syncNativeSubtitleTracks(tracks);
       void loadSelectedSubtitle();
+    }
+
+    function configureAudioTracks(tracks = []) {
+      audioTracks = Array.isArray(tracks) ? tracks : [];
+      const next = audioTracks.find((item) => item.id === selectedAudioTrackId) ||
+        (preferredAudioLanguage && audioTracks.find((item) => item.language === preferredAudioLanguage)) ||
+        audioTracks.find((item) => item.isDefault) ||
+        audioTracks[0];
+      selectedAudioTrackId = next?.id || "";
+      audioCandidates = prioritizeAudioTrack(audioCandidates);
+      audioTrackSelector.replaceChildren(
+        ...audioTracks.map((item) => {
+          const option = document.createElement("option");
+          option.value = item.id;
+          option.textContent = item.label;
+          option.selected = item.id === selectedAudioTrackId;
+          return option;
+        }),
+      );
+      audioTrackSelector.hidden = audioTracks.length < 2;
+    }
+
+    // Audio-only mode tries its candidates in order, so the chosen track goes first.
+    function prioritizeAudioTrack(list) {
+      if (!selectedAudioTrackId) return list;
+      const rank = (item) => Number(item.audioTrackId === selectedAudioTrackId);
+      return [...list].sort((left, right) => rank(right) - rank(left));
+    }
+
+    // The DASH manifest labels each audio AdaptationSet with its track id.
+    function dashAudioPreference() {
+      const track = audioTracks.find((item) => item.id === selectedAudioTrackId);
+      return [{ language: track?.language || "", role: "", label: track?.id || "", channelCount: 0, codec: "" }];
+    }
+
+    // Safari's native HLS exposes the same dubs through video.audioTracks.
+    function applyNativeAudioTrack() {
+      const list = video.audioTracks;
+      const track = audioTracks.find((item) => item.id === selectedAudioTrackId);
+      if (!track || !list || list.length < 2) return;
+      const items = Array.from(list);
+      const baseLanguage = (value) => String(value || "").split("-")[0].toLowerCase();
+      const match = items.find((item) => item.label === track.label) ||
+        items.find((item) => baseLanguage(item.language) === baseLanguage(track.language));
+      if (!match || match.enabled) return;
+      match.enabled = true;
+      for (const item of items) {
+        if (item !== match) item.enabled = false;
+      }
+    }
+
+    function onAudioTrackSelectionChange() {
+      const track = audioTracks.find((item) => item.id === audioTrackSelector.value);
+      if (!track || track.id === selectedAudioTrackId) return;
+      selectedAudioTrackId = track.id;
+      preferredAudioLanguage = track.language;
+      const loadedUrl = audioLoadedIndex >= 0 ? audioCandidates[audioLoadedIndex]?.url : "";
+      audioCandidates = prioritizeAudioTrack(audioCandidates);
+      audioSourceIndex = 0;
+      if (mode === "audio") {
+        if (audioCandidates[0]?.url !== loadedUrl) {
+          const shouldPlay = !audio.paused && !audio.ended;
+          loadCurrentAudioSource(Number.isFinite(audio.currentTime) ? audio.currentTime : 0, shouldPlay, audio.playbackRate);
+        } else {
+          audioLoadedIndex = 0;
+        }
+      } else {
+        // Switching to audio-only reloads the element with the chosen track.
+        audioLoadedIndex = -1;
+      }
+      if (dashPlayer) {
+        dashPlayer.configure({ preferredAudio: dashAudioPreference() });
+        applyQualitySelection(dashPlayer);
+      } else if (candidates[sourceIndex]?.kind === "hls") {
+        applyNativeAudioTrack();
+      }
     }
 
     const initialHandoff = handoffKey ? takePlayerHandoff(handoffKey) : null;
@@ -3294,6 +3384,7 @@
         setCreator({ name: details.author, url: details.channelId ? `/channel/${details.channelId}` : "" });
         updateMediaSessionMetadata();
         configureSubtitles(nextSource.captionTracks);
+        configureAudioTracks(nextSource.audioTracks);
         sourceRefreshAttempts = [];
         sourceIndex = 0;
         audioSourceIndex = 0;
@@ -3508,7 +3599,10 @@
       const auto = selectedQualityMode === "auto";
       player.configure({ abr: { enabled: auto } });
       if (!auto) {
-        const track = chooseQualityTrack(player.getVariantTracks(), selectedQualityMode);
+        // Variants exist per audio track; stay on the chosen one.
+        const tracks = player.getVariantTracks();
+        const sameAudio = tracks.filter((track) => track.label === selectedAudioTrackId);
+        const track = chooseQualityTrack(sameAudio.length ? sameAudio : tracks, selectedQualityMode);
         if (track) player.selectVariantTrack(track, true, 0);
       }
       window.setTimeout(() => updateDashQualityLabel(player), 0);
@@ -3527,7 +3621,9 @@
         const parts = [];
         if (active.height) parts.push(`${active.height}P`);
         if (Number(active.frameRate) > 30) parts.push(`${Math.round(active.frameRate)}fps`);
-        if (currentDashCandidate?.audioLabel) parts.push(currentDashCandidate.audioLabel);
+        const audioLabel = currentDashCandidate?.audioTracks?.find((item) => item.id === active.label)?.audioLabel ||
+          currentDashCandidate?.audioLabel;
+        if (audioLabel) parts.push(audioLabel);
         parts.push(selectedQualityMode === "auto" ? t("autoDash") : "DASH");
         qualityNode.textContent = parts.join(" · ");
         qualityNode.hidden = false;
@@ -3583,6 +3679,7 @@
 
     function onVideoLoadedMetadata() {
       updateFullscreenAvailability();
+      if (!dashPlayer) applyNativeAudioTrack();
       applySubtitleVisibility();
       const pending = pendingVideoRestore;
       if (pending) restoreVideoPlaybackState(pending.state, pending.token);
@@ -3606,6 +3703,7 @@
           candidates = [...fresh.candidates];
           audioCandidates = fresh.audioCandidates || [];
           configureSubtitles(fresh.captionTracks);
+          configureAudioTracks(fresh.audioTracks);
           sourceIndex = 0;
           audioSourceIndex = 0;
           audioLoadedIndex = -1;
@@ -3729,6 +3827,7 @@
             defaultBandwidthEstimate: 12_000_000,
           },
           manifest: { retryParameters },
+          preferredAudio: dashAudioPreference(),
           streaming: {
             bufferingGoal: 18,
             rebufferingGoal: 2,
@@ -4111,6 +4210,7 @@
     }
 
     qualitySelector.addEventListener("change", onQualitySelectionChange);
+    audioTrackSelector.addEventListener("change", onAudioTrackSelectionChange);
     // Removed on dispose through playerAbort, since the TextTrackList outlives this player.
     video.textTracks.addEventListener("change", onNativeSubtitleChange, { signal: playerAbort.signal });
     audioModeButton.addEventListener("click", toggleAudioMode);
@@ -4122,6 +4222,7 @@
     autoplayButton.addEventListener("click", toggleAutoplay);
 
     configureSubtitles(source?.captionTracks);
+    configureAudioTracks(source?.audioTracks);
     updateModeButton();
     updateFullscreenAvailability();
     updateTrackControls();
@@ -4494,6 +4595,7 @@
     const candidates = [];
     const audioCandidates = [];
     const seenAudioUrls = new Set();
+    const audioTracks = new Map();
     const captionTracks = new Map();
     const failures = [];
 
@@ -4571,6 +4673,10 @@
         const streamingData = response.streamingData;
 
         const candidateCount = candidates.length;
+        for (const entry of streamingData.adaptiveFormats || []) {
+          const track = normalizeYouTubeAudioTrack(entry);
+          if (track && !audioTracks.has(track.id)) audioTracks.set(track.id, track);
+        }
         // 1. Collect Audio-Only streams
         for (const item of normalizeYouTubeAudioSource(streamingData)) {
           if (seenAudioUrls.has(item.url)) continue;
@@ -4625,6 +4731,21 @@
       videoDetails: mergedVideoDetails,
       candidates,
       audioCandidates,
+      audioTracks: [...audioTracks.values()],
+    };
+  }
+
+  // Videos with dubs tag each audio format with its track, e.g. id "en.4" and
+  // displayName "English (United States) original". Others carry no tag.
+  function normalizeYouTubeAudioTrack(entry) {
+    const track = entry?.audioTrack;
+    const id = String(track?.id || "");
+    if (!id || !String(entry?.mimeType || "").startsWith("audio/")) return null;
+    return {
+      id,
+      label: String(track.displayName || id),
+      language: id.split(".")[0],
+      isDefault: Boolean(track.audioIsDefault),
     };
   }
 
@@ -4708,8 +4829,21 @@
       .filter(isDashRepresentationSupported)
       .sort((a, b) => b.bandwidth - a.bandwidth);
 
-    const highestAudio = sortedAudios[0];
+    // Keep one stream per audio track (dubbed videos list every format once per
+    // language). Dynamic-range-compressed copies are used only when a track has
+    // nothing else, and every track follows the original track's codec so Shaka
+    // does not drop a track for being the odd codec out.
+    const pickAudio = (reps) => reps.find((rep) => !rep.isDrc) || reps[0];
+    const highestAudio = pickAudio(sortedAudios.filter((rep) => rep.audioTrack?.isDefault)) || pickAudio(sortedAudios);
     if (videoRepresentations.length === 0 || !highestAudio) return null;
+    const audiosByTrack = new Map();
+    for (const rep of sortedAudios) {
+      const key = rep.audioTrack?.id || "";
+      if (!audiosByTrack.has(key)) audiosByTrack.set(key, []);
+      audiosByTrack.get(key).push(rep);
+    }
+    const trackAudios = [...audiosByTrack.values()].map((reps) =>
+      pickAudio(reps.filter((rep) => rep.codecs === highestAudio.codecs)) || pickAudio(reps));
 
     const durationMs = Number(
       videoDetails?.lengthSeconds
@@ -4731,12 +4865,15 @@
       qualityLabel: `${qualityLabel} · ${audioLabel} · DASH`,
       audioBandwidth: highestAudio.bandwidth,
       audioLabel,
+      audioTracks: trackAudios
+        .filter((rep) => rep.audioTrack)
+        .map((rep) => ({ ...rep.audioTrack, audioLabel: formatReportedAudioLabel(rep, true) })),
       qualityOptions: [
         { value: "auto", label: t("qualityAuto") },
         { value: "highest", label: t("qualityHighest") },
         ...heights.map((height) => ({ value: `height:${height}`, label: `${height}P` })),
       ],
-      manifest: buildDashManifest(videoRepresentations, [highestAudio], duration, 1.5),
+      manifest: buildDashManifest(videoRepresentations, trackAudios, duration, 1.5),
     };
   }
 
@@ -4797,6 +4934,8 @@
       frameRate: String(entry.fps || "").trim(),
       audioSamplingRate: Math.max(0, Number(entry.audioSampleRate || 0)),
       audioChannels: Math.max(1, Number(entry.audioChannels || 2)),
+      audioTrack: isAudio ? normalizeYouTubeAudioTrack(entry) : null,
+      isDrc: Boolean(entry.isDrc),
       startWithSAP: 1,
     };
   }
@@ -4825,12 +4964,15 @@
         }
         const isM4a = mimeType.includes("mp4");
         const bandwidth = Number(entry.bitrate || entry.averageBitrate || 0);
-        return { entry, mimeType, codecs, supported, isM4a, bandwidth };
+        const isDrc = Boolean(entry.isDrc);
+        return { entry, mimeType, codecs, supported, isM4a, isDrc, bandwidth };
       })
       .sort((a, b) => {
         if (a.supported !== b.supported) return Number(b.supported) - Number(a.supported);
         // Prefer AAC/MP4 on iOS Safari for reliable hardware lock-screen decoding
         if (a.isM4a !== b.isM4a) return Number(b.isM4a) - Number(a.isM4a);
+        // Dynamic-range-compressed copies only as a fallback.
+        if (a.isDrc !== b.isDrc) return Number(a.isDrc) - Number(b.isDrc);
         return b.bandwidth - a.bandwidth;
       });
 
@@ -4844,6 +4986,7 @@
       bandwidth: item.bandwidth,
       mimeType: item.mimeType,
       codecs: item.codecs,
+      audioTrackId: normalizeYouTubeAudioTrack(item.entry)?.id || "",
     }));
   }
 
@@ -5096,7 +5239,7 @@
 
   function buildDashManifest(videoRepresentations, audioRepresentations, duration, minBufferTime) {
     const bufferTime = Number.isFinite(minBufferTime) && minBufferTime > 0 ? minBufferTime : 1.5;
-    const adaptation = (type, representations) => {
+    const adaptation = (type, representations, id = type, attrs = "", children = "") => {
       const rendered = representations
         .map((rep) => {
           const dimensions =
@@ -5113,14 +5256,29 @@
           return `<Representation id="${escapeXML(rep.id)}" bandwidth="${rep.bandwidth}" mimeType="${escapeXML(rep.mimeType)}" codecs="${escapeXML(rep.codecs)}" startWithSAP="${rep.startWithSAP}"${dimensions}>${baseURLs}<SegmentBase indexRange="${escapeXML(rep.indexRange)}"><Initialization range="${escapeXML(rep.initialization)}" /></SegmentBase>${audioChannels}</Representation>`;
         })
         .join("");
-      return `<AdaptationSet id="${type}" contentType="${type}" segmentAlignment="true" subsegmentAlignment="true">${rendered}</AdaptationSet>`;
+      return `<AdaptationSet id="${escapeXML(id)}" contentType="${type}"${attrs} segmentAlignment="true" subsegmentAlignment="true">${children}${rendered}</AdaptationSet>`;
     };
+    // One AdaptationSet per audio track, labelled with the track id so the
+    // player can pick it; the default (original) track is the main one.
+    const audioGroups = new Map();
+    for (const rep of audioRepresentations) {
+      const key = rep.audioTrack?.id || "";
+      if (!audioGroups.has(key)) audioGroups.set(key, []);
+      audioGroups.get(key).push(rep);
+    }
+    const audioSets = [...audioGroups.values()].map((reps, idx) => {
+      const track = reps[0].audioTrack;
+      if (!track) return adaptation("audio", reps, idx ? `audio-${idx}` : "audio");
+      const attrs = ` lang="${escapeXML(track.language)}" label="${escapeXML(track.id)}"`;
+      const role = track.isDefault ? `<Role schemeIdUri="urn:mpeg:dash:role:2011" value="main" />` : "";
+      return adaptation("audio", reps, `audio-${idx}`, attrs, role);
+    });
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <MPD xmlns="urn:mpeg:dash:schema:mpd:2011" type="static" profiles="urn:mpeg:dash:profile:isoff-on-demand:2011" mediaPresentationDuration="PT${duration.toFixed(3)}S" minBufferTime="PT${bufferTime}S">
   <Period id="0" start="PT0S">
     ${adaptation("video", videoRepresentations)}
-    ${adaptation("audio", audioRepresentations)}
+    ${audioSets.join("\n    ")}
   </Period>
 </MPD>`;
   }
