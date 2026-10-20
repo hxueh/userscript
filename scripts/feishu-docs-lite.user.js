@@ -2,7 +2,7 @@
 // @name         Feishu Docs Lite
 // @name:zh-CN   飞书文档精简
 // @namespace    https://github.com/hxueh
-// @version      0.2.1
+// @version      0.2.2
 // @description  Makes Feishu Docs lighter and calmer, starting with the Wiki (/wiki and /wiki/*). Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and accessibility-testing tooling before they load, and stops their global error and long-task observers. Recolours the whole app with Solarized Light by day and Apple dark mode by night, following Feishu's Appearance setting, and uses the system font.
 // @description:zh-CN 让飞书文档更轻、更安静，先支持知识库（/wiki 与 /wiki/*）。在加载前拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和无障碍测试工具，并停止它们的全局错误与长任务监听。跟随飞书的外观设置，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色，并使用系统字体。
 // @author       hxueh
@@ -69,82 +69,6 @@
     // Docs is a single-page app, so the blocker stays on after a route change.
     // ---------------------------------------------------------------------
     FeishuLiteBlocker.install();
-
-    // ---------------------------------------------------------------------
-    // Light and dark. Feishu Docs has a complete dark theme behind
-    // html[data-theme="dark"], and its document view follows that attribute.
-    // The script sets the attribute from the Appearance choice below and sets
-    // it back if the app changes it, so Feishu's own dark styles (and the
-    // recolouring below) follow that choice.
-    // ---------------------------------------------------------------------
-    // Feishu has two Appearance settings (Light, Dark or Follow System): one
-    // in the Messenger avatar menu and one in the Docs "..." menu. They are
-    // saved apart and do not sync. Both Lite scripts use the most recent
-    // choice from either menu, so one switch changes Messenger and Docs.
-    // Follow System uses the browser or OS theme.
-    //
-    // - Messenger saves {"value":"DARK","lastTime":...} in MESSENGER_KEY.
-    // - Docs saves {"setting":"dark","sync":true,...} in DOCS_KEY when you
-    //   choose. It also rewrites the key without "sync" on every page load,
-    //   so only writes with "sync" count as a choice.
-    // - The latest choice and its time go in CHOICE_KEY, which both scripts
-    //   share because Messenger and Docs are on the same tenant domain.
-    const MESSENGER_KEY = 'larkapi/next_lark_web_preference/lark.setting.theme';
-    const DOCS_KEY = 'view_mode';
-    const CHOICE_KEY = 'feishu-lite-theme';
-    const CHOICES = ['light', 'dark', 'system'];
-    const setItem = Storage.prototype.setItem;
-    const parse = (text) => {
-        try { return JSON.parse(text); } catch { return text; }
-    };
-    const readKey = (key) => {
-        try { return parse(localStorage.getItem(key)); } catch { return null; }
-    };
-    const fromMessenger = (v) => ({ LIGHT: 'light', DARK: 'dark', FOLLOW_SYSTEM: 'system' })[v && typeof v === 'object' ? v.value : v] || null;
-    const fromDocs = (v) => (v && CHOICES.includes(v.setting) ? v.setting : null);
-    // A write to a Feishu key that is a real choice: [setting, time] or null.
-    const choiceOf = (key, text) => {
-        const v = parse(text);
-        if (key === MESSENGER_KEY) return fromMessenger(v) && [fromMessenger(v), +v?.lastTime || Date.now()];
-        if (key === DOCS_KEY && v?.sync) return fromDocs(v) && [fromDocs(v), Date.now()];
-        return null;
-    };
-    const darkQuery = matchMedia('(prefers-color-scheme: dark)');
-    const wantDark = () => {
-        const saved = readKey(CHOICE_KEY);
-        // No choice made since the script was installed: use this page's own
-        // setting, then the other one.
-        const setting = CHOICES.includes(saved?.setting) ? saved.setting
-            : fromDocs(readKey(DOCS_KEY)) || fromMessenger(readKey(MESSENGER_KEY));
-        return setting === 'dark' || (setting !== 'light' && darkQuery.matches);
-    };
-    const remember = (choice) => {
-        if (!choice) return;
-        const [setting, time] = choice;
-        // An older write (for example Feishu saving an unchanged setting
-        // again) does not replace a newer choice.
-        if (!(time > (+readKey(CHOICE_KEY)?.time || 0))) return;
-        try { setItem.call(localStorage, CHOICE_KEY, JSON.stringify({ setting, time })); } catch { /* storage full or blocked */ }
-        applyTheme();
-    };
-    const applyTheme = () => {
-        const theme = wantDark() ? 'dark' : 'light';
-        if (root.getAttribute('data-theme') !== theme) root.setAttribute('data-theme', theme);
-    };
-    new MutationObserver(applyTheme).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
-    applyTheme();
-    darkQuery.addEventListener('change', applyTheme);
-    // A choice made in another tab (the storage event fires only there).
-    addEventListener('storage', (e) => {
-        if (e.key === CHOICE_KEY || e.key === null) applyTheme();
-        else remember(choiceOf(e.key, e.newValue));
-    });
-    // A choice made in this tab. The script runs in the page (@grant none),
-    // so wrapping setItem sees Feishu's own write at once.
-    Storage.prototype.setItem = function (key, value) {
-        setItem.call(this, key, value);
-        if (this === localStorage) remember(choiceOf(key, String(value)));
-    };
 
     // ---------------------------------------------------------------------
     // Colours. Feishu defines about 1,800 colour tokens (--bg-body, --N900,
