@@ -2,9 +2,9 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.3.2
-// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Switches with Feishu's own light and dark theme.
-// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。跟随飞书自身的浅色与深色主题。
+// @version      0.4.0
+// @description  Gives Feishu's web messenger (/next/messenger) an iOS and macOS 27 look with Liquid Glass menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. On iPhone (Safari with "Request Desktop Website"), shows the chat list and chats full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
+// @description:zh-CN 为飞书网页版消息（/next/messenger）加入 iOS 与 macOS 27 风格：液态玻璃菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。在 iPhone 上（Safari 开启“请求桌面网站”）全屏显示会话列表和会话，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -560,6 +560,62 @@ html.fml .a11y_feed_card_main + div > div::after { display: none !important; }
 html.fml .a11y_feed_main_list .list_items > div > div > div { animation-duration: 1ms !important; }
 html.fml .a11y_feed_main_list .list_items > div { transition: none !important; }
 html.fml .a11y_feed_card_item, html.fml .a11y_feed_card_item > * { transition: none !important; }
+
+/* ---- Phone layout (iOS Safari) ---------------------------------------- */
+/* html.fml-mobile is set by the script on touch phones and narrow windows.
+   The layout follows iOS Messages: the chat list fills the screen, a tap
+   shows the chat full screen (html.fml-chat-open), and the back button or
+   the back swipe returns to the list. Feishu's own script hides the list
+   with an inline display: none and squeezes the chat at this width, so
+   these rules use !important to win over inline styles. The sidebar
+   (Calendar, Docs and the rest) is hidden: this script is for Messenger. */
+html.fml.fml-mobile .appNavbar,
+html.fml.fml-mobile .sidebar-resizer { display: none !important; }
+html.fml.fml-mobile .appLayout {
+    /* 100dvh follows Safari's toolbars, so the message box stays visible. */
+    height: 100dvh !important;
+    box-sizing: border-box;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+html.fml.fml-mobile .appLayout-content,
+html.fml.fml-mobile .appLayout-content > div {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 auto;
+}
+html.fml.fml-mobile .page-view-messenger { display: block !important; width: 100% !important; }
+html.fml.fml-mobile .page-view-messenger-chat { display: none !important; }
+html.fml.fml-mobile.fml-chat-open .page-view-messenger { display: none !important; }
+html.fml.fml-mobile.fml-chat-open .page-view-messenger-chat { display: block !important; width: 100% !important; }
+/* Full-screen panels, as on iPhone, instead of floating cards. */
+html.fml.fml-mobile .page-content-wrapper {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+html.fml.fml-mobile .chatContainer__headerWrapper { padding-left: 44px !important; }
+html.fml.fml-mobile .lark__editor--default { margin-bottom: calc(env(safe-area-inset-bottom) + 4px) !important; }
+/* The back button is the script's own element, outside Feishu's React
+   tree, so a Feishu re-render cannot remove it. */
+.fml-back { display: none; }
+html.fml.fml-mobile.fml-chat-open .fml-back {
+    display: flex;
+    position: fixed;
+    z-index: 1000;
+    top: calc(env(safe-area-inset-top) + 16px);
+    left: calc(env(safe-area-inset-left) + 6px);
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--fml-blue);
+    -webkit-tap-highlight-color: transparent;
+}
+html.fml.fml-mobile.fml-chat-open .fml-back:active { background: var(--fill-pressed); }
+html.fml.fml-mobile .fml-back svg { width: 22px; height: 22px; }
 
 /* ---- Scrollbars: thin overlay bars, as on macOS ----------------------- */
 html.fml * { scrollbar-width: thin; scrollbar-color: rgba(128, 128, 128, .45) transparent; }
@@ -1195,6 +1251,88 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     };
 
     // ---------------------------------------------------------------------
+    // Phone layout for iOS Safari. Feishu refuses phone browsers by their
+    // user agent on the server, so Safari must use "Request Desktop
+    // Website" for feishu.cn. Then the user agent says Mac, so the phone is
+    // found by touch support and screen size instead. A narrow window on a
+    // computer gets the same layout.
+    // ---------------------------------------------------------------------
+    const isMobile = () => (navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) <= 500)
+        || window.innerWidth <= 640;
+    let mobile = false;
+
+    // In desktop mode Safari may lay the page out wider than the screen.
+    // This viewport keeps it at the phone's width, stops the zoom when a
+    // text field gets focus, and lets the page use the full screen so the
+    // safe-area padding in the CSS can keep clear of the notch.
+    const VIEWPORT = 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
+    const setViewport = () => {
+        if (!document.head) return;
+        let meta = document.querySelector('meta[name="viewport"]');
+        if (!meta) {
+            meta = document.createElement('meta');
+            meta.name = 'viewport';
+            document.head.appendChild(meta);
+        }
+        if (meta.content !== VIEWPORT) meta.content = VIEWPORT;
+    };
+
+    const backButton = document.createElement('button');
+    backButton.className = 'fml-back';
+    backButton.type = 'button';
+    backButton.setAttribute('aria-label', 'Back');
+    backButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 8 12l7 7"/></svg>';
+
+    // Opening a chat adds a history entry with the same URL, so Safari's
+    // back swipe and back button return to the list instead of leaving
+    // Feishu. Feishu's own history state is kept in the entry.
+    const openChatView = () => {
+        if (document.documentElement.classList.contains('fml-chat-open')) return;
+        document.documentElement.classList.add('fml-chat-open');
+        history.pushState({ ...(history.state || {}), fml: 'chat' }, '', location.href);
+    };
+    const closeChatView = () => document.documentElement.classList.remove('fml-chat-open');
+    backButton.addEventListener('click', () => {
+        if (history.state?.fml === 'chat') history.back(); // popstate closes the view
+        else closeChatView();
+    });
+    window.addEventListener('popstate', () => {
+        if (history.state?.fml !== 'chat') closeChatView();
+    });
+
+    const rowFeedId = (row) => {
+        const key = Object.keys(row).find((k) => k.startsWith('__reactInternalInstance') || k.startsWith('__reactFiber'));
+        for (let f = key && row[key], i = 0; f && i < 15; f = f.return, i++) {
+            if (typeof f.memoizedProps?.feedId === 'string') return f.memoizedProps.feedId;
+        }
+        return null;
+    };
+    // A tap on a chat row shows the chat. The Done button archives without
+    // opening, and "Collapsed Chats" opens its folder inside the list.
+    document.addEventListener('click', (e) => {
+        if (!mobile || !active || !(e.target instanceof Element)) return;
+        const row = e.target.closest('.a11y_feed_card_item');
+        if (!row || e.target.closest(DONE_BUTTON)) return;
+        const box = feedStore?.getState().status?.boxEntryId;
+        if (box && rowFeedId(row) === box) return;
+        openChatView();
+    }, true);
+
+    const syncMobile = () => {
+        const want = active && isMobile();
+        if (want !== mobile) {
+            mobile = want;
+            document.documentElement.classList.toggle('fml-mobile', want);
+            if (!want) closeChatView();
+        }
+        if (mobile) {
+            setViewport();
+            if (document.body && !backButton.isConnected) document.body.appendChild(backButton);
+        }
+    };
+    window.addEventListener('resize', () => { if (active) syncMobile(); });
+
+    // ---------------------------------------------------------------------
     // Route tracking: the theme and the observer are on only on /next/messenger.
     // ---------------------------------------------------------------------
     let active = false;
@@ -1208,7 +1346,11 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
             if (document.body) scan(document.body);
             bootPrefetch();
             if (feedStore) sweep();
+            syncMobile();
+            // <body> may not exist yet at document-start.
+            if (!document.body) document.addEventListener('DOMContentLoaded', syncMobile, { once: true });
         } else {
+            syncMobile();
             observer.disconnect();
             pending = [];
             // The sidebar stays in Docs, Calendar and the rest; restore it.
