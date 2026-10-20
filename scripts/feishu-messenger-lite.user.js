@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.8.1
+// @version      0.9.0
 // @description  Gives Feishu's web messenger (/next/messenger) and contacts (/next/contacts) an iOS and macOS 27 look with Liquid Glass panels, chat and contact rows, menus and dialogs, capsule buttons, squircle cards and the system font, coloured Solarized Light by day and Apple dark mode by night. Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and the Security Policy SDK, and removes "Download Feishu". Shrinks the tab menu to icons, with a button to expand it. Makes the chat list and the contact group list five pinned chats wide by default; drag the divider to resize them. Loads the full chat list and the latest messages of small chats in the background, shows the Done button on every chat, and puts "Collapsed Chats" last. Works on iPhone Safari: loads the desktop app past Feishu's browser check and shows the chat list, chats and contact lists full screen with a back button and back swipe. Switches with Feishu's own light and dark theme.
 // @description:zh-CN 为飞书网页版消息（/next/messenger）和通讯录（/next/contacts）加入 iOS 与 macOS 27 风格：液态玻璃面板、会话与联系人卡片、菜单与弹窗、胶囊按钮、圆角卡片和系统字体，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色。拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和 Security Policy SDK，并移除“下载飞书”。将标签栏缩为仅显示图标，并提供展开按钮。会话列表和联系人分组列表默认宽度为五个置顶会话，可拖动分隔线调整。在后台预加载完整会话列表和小群的最新消息，在每个会话上显示“完成”按钮，并把“折叠的会话”放到最后。支持 iPhone Safari：绕过飞书的浏览器检查加载桌面版，全屏显示会话列表、会话和联系人列表，支持返回按钮和返回手势。跟随飞书自身的浅色与深色主题。
 // @author       hxueh
@@ -10,6 +10,7 @@
 // @icon         https://www.feishu.cn/favicon.ico
 // @match        https://*.feishu.cn/next/messenger*
 // @match        https://*.feishu.cn/next/contacts*
+// @require      https://update.greasyfork.org/scripts/601258/1969170/Feishu%20Lite%20Blocker.js
 // @run-at       document-start
 // @grant        none
 // @noframes
@@ -113,127 +114,26 @@
     }
 
     // ---------------------------------------------------------------------
-    // Request blocker. It runs at document-start in the page (@grant none), so
-    // patching fetch, XHR, sendBeacon and script loading affects every caller
-    // before the blocked scripts can run. The IM gateway, WebSocket, passport
-    // heartbeat and file CDNs are not touched.
+    // Request blocker, from the shared Feishu Lite Blocker library (see
+    // @require). It blocks Tea/Rangers analytics, Slardar monitoring and
+    // marketing tags. The messenger also loads its own copy of Slardar,
+    // accessibility-testing tooling and the Security Policy SDK file, which
+    // are added here. The IM gateway, WebSocket, passport heartbeat and file
+    // CDNs are not touched. Only Messenger and Contacts routes are blocked.
     // ---------------------------------------------------------------------
-    const BLOCKED_URL = new RegExp([
-        // Tea / Rangers analytics: collectors and SDK plugins.
-        '//mcs(?:-[a-z0-9-]+)?\\.(?:feishu\\.cn|larksuite\\.com|zijieapi\\.com)/',
-        '//[^/]*applogcdn\\.com/', '/collect-autotrack-rangers\\.js', '//analytics\\.snssdk\\.com/',
-        // Slardar performance and error monitor: SDK, settings, uploads.
-        '//[^/]*bytedapm\\.com/', '/slardar/fe/sdk-web/', '//slardar[^/]*\\.(?:feishu\\.cn|larksuite\\.com)/',
-        '/monitor_(?:browser|web)/(?:collect|settings)', '//mon\\.(?:zijieapi|snssdk|tiktokv)\\.com/',
-        // The messenger's own Slardar copy (about 90 KB), loaded by the HTML.
-        '/web-client-next/p/static/js/slardar\\.[0-9a-f]+\\.js',
-        // Accessibility-testing tooling; readers and keyboards do not need it.
-        '/accessibility-task-platform/',
-        // The Security Policy SDK file only (the path has a double slash),
-        // not the policy APIs that login and messages use.
-        '/lmp/scs/+policy-sdk(?:-[0-9][0-9A-Za-z._-]*)?\\.js(?:[?#]|$)',
-        // Third-party marketing tags.
-        '//www\\.googletagmanager\\.com/', '//(?:www|ssl)\\.google-analytics\\.com/',
-        '//(?:px\\.ads|snap)\\.licdn\\.com/', '//px\\.ads\\.linkedin\\.com/', '//hm\\.baidu\\.com/',
-    ].join('|'), 'i');
-    // This runs on every request and every image src the app sets, so the
-    // cheap checks come first. data: and blob: URLs are never trackers, and a
-    // base64 image can be hundreds of KB, which the regex would scan in full.
-    const isBlocked = (url) => {
-        if (!url) return false;
-        try {
-            const s = typeof url === 'string' ? url : String(url instanceof Request ? url.url : url);
-            if (s.startsWith('data:') || s.startsWith('blob:')) return false;
-            return onFeishuPage() && BLOCKED_URL.test(s);
-        } catch { return false; }
-    };
-
-    // A blocked beacon reports success so the caller moves on.
-    if (navigator.sendBeacon) {
-        const beacon = navigator.sendBeacon.bind(navigator);
-        navigator.sendBeacon = (url, data) => (isBlocked(url) ? true : beacon(url, data));
-    }
-    // A blocked fetch resolves with "{}" so the SDKs do not throw or retry.
-    const nativeFetch = window.fetch;
-    window.fetch = function (input, init) {
-        if (isBlocked(input)) {
-            return Promise.resolve(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
-        }
-        return nativeFetch.apply(this, arguments);
-    };
-    // A blocked XHR loads an empty data: URL and completes without the network.
-    const nativeOpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-        if (isBlocked(url)) return nativeOpen.call(this, 'GET', 'data:application/json,{}', ...rest);
-        return nativeOpen.call(this, method, url, ...rest);
-    };
-    // Tracking pixels and tag iframes: a blocked src is never set.
-    for (const Element_ of [HTMLImageElement, HTMLIFrameElement]) {
-        const desc = Object.getOwnPropertyDescriptor(Element_.prototype, 'src');
-        Object.defineProperty(Element_.prototype, 'src', {
-            configurable: true, enumerable: desc.enumerable, get: desc.get,
-            set(value) { if (!isBlocked(value)) desc.set.call(this, value); },
-        });
-    }
-    // A blocked script fires an error so loaders give up instead of hanging.
-    const scriptSrc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
-    Object.defineProperty(HTMLScriptElement.prototype, 'src', {
-        configurable: true, enumerable: scriptSrc.enumerable, get: scriptSrc.get,
-        set(value) {
-            if (!isBlocked(value)) { scriptSrc.set.call(this, value); return; }
-            this.type = 'javascript/blocked';
-            setTimeout(() => this.dispatchEvent(new Event('error')), 0);
-        },
+    FeishuLiteBlocker.install({
+        when: onFeishuPage,
+        patterns: [
+            // The messenger's own Slardar copy (about 90 KB), loaded by the HTML.
+            '/web-client-next/p/static/js/slardar\\.[0-9a-f]+\\.js',
+            // Accessibility-testing tooling; readers and keyboards do not need it.
+            '/accessibility-task-platform/',
+            // The Security Policy SDK file only (the path has a double slash),
+            // not the policy APIs that login and messages use.
+            '/lmp/scs/+policy-sdk(?:-[0-9][0-9A-Za-z._-]*)?\\.js(?:[?#]|$)',
+        ],
+        stubs: ['lintrk'],
     });
-    const nativeSetAttribute = Element.prototype.setAttribute;
-    // React calls setAttribute for every class, aria-* and data-* change, so
-    // test the attribute name before running the URL regex.
-    Element.prototype.setAttribute = function (name, value) {
-        if (typeof name === 'string' && name.length === 3 && name.toLowerCase() === 'src'
-            &&(this instanceof HTMLScriptElement || this instanceof HTMLImageElement || this instanceof HTMLIFrameElement)
-            && isBlocked(value)) {
-            this.src = value; // routed through the guarded setters above
-            return;
-        }
-        return nativeSetAttribute.call(this, name, value);
-    };
-
-    // The HTML parser inserts scripts without the src setter. An observer
-    // sees each one before it runs and disables it; Firefox can also cancel
-    // it with beforescriptexecute.
-    const blockParsed = (node) => {
-        if (node.tagName !== 'SCRIPT' || !node.src || !isBlocked(node.src)) return;
-        node.type = 'javascript/blocked';
-        node.remove();
-    };
-    const parserGuard = new MutationObserver((records) => {
-        for (const rec of records) for (const n of rec.addedNodes) blockParsed(n);
-    });
-    parserGuard.observe(document, { childList: true, subtree: true });
-    // Later scripts come from code and hit the src setter, so stop here.
-    document.addEventListener('DOMContentLoaded', () => parserGuard.disconnect(), { once: true });
-    document.addEventListener('beforescriptexecute', (e) => {
-        if (e.target.src && isBlocked(e.target.src)) e.preventDefault();
-    }, true);
-
-    // Stubs for globals that inline snippets call, so they do not throw.
-    const noop = () => {};
-    for (const name of ['gtag', 'ga', 'collectEvent', 'lintrk']) {
-        if (!window[name]) window[name] = noop;
-    }
-    // Slardar is used through chains such as Slardar.getSender().send(...).
-    // This proxy returns itself for any call or property, has no "then" so
-    // awaiting it does not hang, and converts to "" as a value.
-    const sink = new Proxy(function () {}, {
-        get: (_, key) => (key === 'then' || key === Symbol.iterator ? undefined
-            : key === Symbol.toPrimitive ? () => ''
-            : sink),
-        apply: () => sink,
-        construct: () => sink,
-    });
-    if (onFeishuPage() && !window.Slardar) window.Slardar = sink;
-    if (!window.dataLayer) window.dataLayer = [];
-    if (!window._hmt) window._hmt = [];
 
     // ---------------------------------------------------------------------
     // Theme. Feishu's Universe Design (UD) components have stable ud__* class

@@ -28,7 +28,8 @@ list and the Greasyfork setup.
 
 - Bump the library's `@version`, push, and wait for Greasyfork to sync it.
 - Then point each script's `@require` at the new versioned URL
-  (`https://update.greasyfork.org/scripts/<id>/<version>/<file>.js`) and bump
+  (`https://update.greasyfork.org/scripts/<id>/<version-id>/<name>.js`; the
+  version ID is Greasyfork's own number, shown on the library page) and bump
   the script's `@version`. A script keeps the old library until you do this.
 - Keep the library's API backward compatible, so a script with an older
   `@require` still works.
