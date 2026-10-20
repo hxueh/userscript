@@ -2,7 +2,7 @@
 // @name         Feishu Docs Lite
 // @name:zh-CN   飞书文档精简
 // @namespace    https://github.com/hxueh
-// @version      0.1.0
+// @version      0.1.1
 // @description  Makes Feishu Docs lighter and calmer, starting with the Wiki (/wiki and /wiki/*). Blocks Tea/Rangers analytics and Slardar monitoring before they load, and stops their global error and long-task observers. Recolours the whole app with Solarized Light by day and Apple dark mode by night, following the system theme, and uses the system font. Your company's watermark, security policy and audit features are not changed.
 // @description:zh-CN 让飞书文档更轻、更安静，先支持知识库（/wiki 与 /wiki/*）。在加载前拦截 Tea/Rangers 统计和 Slardar 监控，并停止它们的全局错误与长任务监听。跟随系统主题，日间使用 Solarized Light 配色，夜间使用 Apple 深色模式配色，并使用系统字体。不改动企业水印、安全策略和审计功能。
 // @author       hxueh
@@ -11,7 +11,7 @@
 // @match        https://*.feishu.cn/wiki
 // @match        https://*.feishu.cn/wiki/*
 // @match        https://*.feishu.cn/wiki?*
-// @require      https://update.greasyfork.org/scripts/601258/1969170/Feishu%20Lite%20Blocker.js
+// @require      https://update.greasyfork.org/scripts/601258/Feishu%20Lite%20Blocker.js
 // @run-at       document-start
 // @grant        none
 // @noframes
@@ -65,12 +65,12 @@
 
     // ---------------------------------------------------------------------
     // Request blocker, from the shared Feishu Lite Blocker library (see
-    // @require). It blocks Tea/Rangers analytics, Slardar monitoring and
-    // marketing tags before they load, including the inline Slardar loaders
-    // that keep global error and long-task observers. The security policy
-    // SDK, watermark, audit reporter and compliance ping are your company's
-    // controls and are left alone on purpose. Docs is a single-page app, so
-    // the blocker stays on after a route change.
+    // @require, always the latest version). It blocks Tea/Rangers analytics,
+    // Slardar monitoring and marketing tags before they load, including the
+    // inline Slardar loaders that keep global error and long-task observers.
+    // The security policy SDK, watermark, audit reporter and compliance ping
+    // are your company's controls and are left alone on purpose. Docs is a
+    // single-page app, so the blocker stays on after a route change.
     // ---------------------------------------------------------------------
     FeishuLiteBlocker.install();
 

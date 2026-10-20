@@ -26,13 +26,15 @@ list and the Greasyfork setup.
 
 ## Changing a library
 
-- Bump the library's `@version`, push, and wait for Greasyfork to sync it.
-- Then point each script's `@require` at the new versioned URL
-  (`https://update.greasyfork.org/scripts/<id>/<version-id>/<name>.js`; the
-  version ID is Greasyfork's own number, shown on the library page) and bump
-  the script's `@version`. A script keeps the old library until you do this.
-- Keep the library's API backward compatible, so a script with an older
-  `@require` still works.
+- Bump the library's `@version` and push. Greasyfork syncs it like a script.
+- Scripts load the latest library through the unversioned URL
+  (`https://update.greasyfork.org/scripts/<id>/<name>.js`), so do not pin a
+  version in `@require`.
+- Userscript managers fetch a `@require` again only when the script itself
+  updates. To ship a library change at once, also bump the `@version` of each
+  script that uses it.
+- Keep the library's API backward compatible, because every script gets the
+  new version.
 
 ## Publishing
 

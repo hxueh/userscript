@@ -40,8 +40,9 @@ Greasyfork as a library, which scripts load with `@require`:
 | --- | --- | --- |
 | Feishu Lite Blocker | Feishu Messenger Lite, Feishu Docs Lite | [601258](https://greasyfork.org/en/scripts/601258) |
 
-A library change reaches a script only when the script's `@require` URL points
-at the new library version, so update the URL and bump the script too.
+Scripts load the latest version of a library. A userscript manager fetches a
+`@require` again only when the script updates, so bump the scripts that use a
+library to ship a library change at once.
 
 ## Changing a script
 
