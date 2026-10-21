@@ -2,12 +2,13 @@
 // @name         Feishu Docs Lite
 // @name:zh-CN   飞书文档精简
 // @namespace    https://github.com/hxueh
-// @version      0.5.0
-// @description  Makes Feishu Wiki, Docs, Sheets and Base lighter by blocking analytics, monitoring, ad trackers, and testing tools. Uses the system font and keeps Feishu’s theme settings.
-// @description:zh-CN 精简飞书知识库、云文档、电子表格和多维表格，拦截统计、监控、广告追踪和测试工具。使用系统字体，保留飞书的主题设置。
+// @version      0.6.0
+// @description  Makes Feishu Drive, Wiki, Docs, Sheets and Base lighter: blocks analytics, monitoring and ad trackers, uses system fonts (also in whiteboards, which saves a 17 MB download), removes tracking characters from titles, hides the help button and speeds up menus. Keeps Feishu’s theme.
+// @description:zh-CN 精简飞书云盘、知识库、云文档、电子表格和多维表格：拦截统计、监控和广告追踪，使用系统字体（画板也使用，省去 17 MB 下载），去除标题中的追踪字符，隐藏帮助按钮，加快菜单动画。保留飞书的主题设置。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
+// @match        https://*.feishu.cn/drive/*
 // @match        https://*.feishu.cn/wiki
 // @match        https://*.feishu.cn/wiki/*
 // @match        https://*.feishu.cn/wiki?*
@@ -36,6 +37,9 @@
     // can be scoped without any script work.
     // ---------------------------------------------------------------------
     const APPS = [
+        // Feishu opens on Drive (/drive/home/). A doc opened from there is
+        // an in-app navigation, so the script must already run on Drive.
+        ['drive', /^\/drive(?:\/|$)/],
         ['wiki', /^\/wiki(?:\/|$)/],
         // A doc opened by its own link, outside the wiki tree.
         ['docx', /^\/docx\//],
@@ -62,27 +66,50 @@
         if (next) root.classList.add('fdl-' + next);
         currentApp = next;
     };
-    for (const method of ['pushState', 'replaceState']) {
-        const native = history[method];
-        history[method] = function () {
-            const result = native.apply(this, arguments);
-            syncApp();
-            return result;
+
+    // ---------------------------------------------------------------------
+    // The shared library handles request filtering, watermarks and the
+    // invisible tracking characters in document titles for both Lite
+    // scripts, and patches history once for all of them. Docs is a
+    // single-page app, so the blocker stays on after a route change.
+    // ---------------------------------------------------------------------
+    FeishuLiteBlocker.install({ cleanTitle: true });
+    FeishuLiteBlocker.onRoute(syncApp);
+
+    // ---------------------------------------------------------------------
+    // Whiteboard font. The whiteboard draws its text on a canvas, and its
+    // font plugin downloads Noto Sans SC Regular and Bold (about 17 MB
+    // together) for each page that has a whiteboard. It loads them with
+    // new FontFace(family, "url(...)"), and catches any load error. Give
+    // that family the system's own CJK font instead, by weight. The family
+    // name stays the same, so the plugin sees the font as loaded and draws
+    // with it. If none of the local fonts exists, load() fails, the plugin
+    // logs it, and the canvas uses its fallback font. Text in shapes can
+    // wrap a little differently than for users without this script.
+    // ---------------------------------------------------------------------
+    const WHITEBOARD_FONT = /whiteboard_icon_source\/font\/Noto_Sans_/;
+    const LOCAL_FONTS = {
+        400: 'local("PingFangSC-Regular"), local("HiraginoSans-W3"), local("MicrosoftYaHei"), local("NotoSansSC-Regular")',
+        700: 'local("PingFangSC-Semibold"), local("HiraginoSans-W6"), local("MicrosoftYaHei-Bold"), local("NotoSansSC-Bold")',
+    };
+    const NativeFontFace = window.FontFace;
+    if (NativeFontFace) {
+        // A subclass keeps instanceof, the prototype and document.fonts.add()
+        // working for every other font, which passes through unchanged.
+        window.FontFace = class FontFace extends NativeFontFace {
+            constructor(family, source, descriptors) {
+                if (typeof source === 'string' && WHITEBOARD_FONT.test(source)) {
+                    source = Number(descriptors?.weight) >= 600 ? LOCAL_FONTS[700] : LOCAL_FONTS[400];
+                }
+                super(family, source, descriptors);
+            }
         };
     }
-    window.addEventListener('popstate', syncApp);
 
     // ---------------------------------------------------------------------
-    // The shared library handles request filtering for both Lite scripts.
-    // Keep these rules in the library so both scripts use the same code.
-    // Docs is a single-page app, so the blocker stays on after a route change.
-    // ---------------------------------------------------------------------
-    FeishuLiteBlocker.install();
-
-    // ---------------------------------------------------------------------
-    // Page CSS: system font only. Colours and light or dark stay as Feishu
-    // sets them from its own Appearance setting. Plain CSS, so no script
-    // runs while you read, scroll or type.
+    // Page CSS: system font, no help button, quick transitions. Colours and
+    // light or dark stay as Feishu sets them from its own Appearance
+    // setting. Plain CSS, so no script runs while you read, scroll or type.
     // ---------------------------------------------------------------------
     const CSS = `
 html.fdl {
@@ -98,6 +125,17 @@ html.fdl body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
+/* The floating "?" help button covers the bottom right of the document.
+   Help stays in the "..." menu. */
+html.fdl .help-block.group-btns { display: none !important; }
+/* Menus, panels and hover states open at once. 1 ms instead of 0, because
+   with no duration the browser does not fire transitionend, and some code
+   waits for it before it continues. Animations are not changed, so loading
+   spinners keep turning. */
+html.fdl *, html.fdl *::before, html.fdl *::after {
+    transition-duration: 1ms !important;
+    transition-delay: 0s !important;
+}
 `;
     const pageStyle = document.createElement('style');
     pageStyle.className = 'fdl-style';
@@ -105,14 +143,5 @@ html.fdl body {
 
     // At document-start <head> may not exist yet. The style goes at the end
     // of <html>, after <head>, so it comes after Feishu's own CSS.
-    const install = () => root.append(pageStyle);
-    if (document.head) install();
-    else {
-        const wait = new MutationObserver(() => {
-            if (!document.head) return;
-            wait.disconnect();
-            install();
-        });
-        wait.observe(root, { childList: true });
-    }
+    FeishuLiteBlocker.whenHead(() => root.append(pageStyle));
 })();
