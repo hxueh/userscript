@@ -3,9 +3,9 @@
 // @name:zh-CN   豆瓣移动版增强：广播 · 书影音 · 小组 · 搜索
 // @namespace    https://github.com/hxueh
 // @author       hxueh
-// @version      0.3.11
-// @description  Replaces m.douban.com with a full-page Lite interface. Search Douban and discover movies, TV, books, music and interest-based groups with or without login. Browse friends' broadcasts, your library and joined groups when logged in; read full comments, reviews and topics without app prompts. Uses your web session and stores no local data.
-// @description:zh-CN 自动接管 m.douban.com，提供全屏精简界面。新增豆瓣搜索，登录前后都能发现电影、剧集、图书、音乐和兴趣小组；登录后查看友邻广播、个人书影音和已加入小组。支持完整短评、长评与话题，移除打开 App 提示，仅使用网页登录状态，不保存本地数据。
+// @version      0.3.12
+// @description  Replaces Douban mobile with a full-page interface for search, movies, TV, books, music, groups, and reviews. Sign in to browse friends’ posts and your library. Removes app prompts and uses your web session.
+// @description:zh-CN 为豆瓣移动版提供全屏界面，支持搜索、书影音、小组和评论。登录后可查看友邻广播与个人书影音。移除 App 提示，使用网页登录状态。
 // @match        https://m.douban.com/*
 // @run-at       document-start
 // @grant        none

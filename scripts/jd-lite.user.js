@@ -2,9 +2,9 @@
 // @name         JD Lite
 // @name:zh-CN   京东精简版
 // @namespace    https://github.com/hxueh
-// @version      0.3.0
-// @description  Strips JD desktop pages down to search, product images, price, SKU and buy buttons, blocks tracking scripts and beacons, removes popups, side rails, sponsored results and recommendations, and restyles search and item pages in an iOS look that works at phone and desktop width and follows the system dark mode.
-// @description:zh-CN 把京东桌面版精简为搜索、商品图、价格、规格和购买按钮，拦截统计脚本与上报请求，移除弹窗、侧边栏、推广商品和推荐模块，并以 iOS 风格重绘搜索页和商品页，手机和电脑宽度都能正常使用，并跟随系统深色模式。
+// @version      0.3.1
+// @description  Simplifies JD search and product pages with an iOS-style layout for phones and desktops. Keeps product details and buy buttons, blocks tracking, removes ads and popups, and follows system dark mode.
+// @description:zh-CN 以 iOS 风格精简京东搜索页和商品页，适配手机与电脑。保留商品信息和购买按钮，拦截追踪，移除广告与弹窗，并跟随系统深色模式。
 // @author       hxueh
 // @license      MIT
 // @homepageURL  https://github.com/hxueh

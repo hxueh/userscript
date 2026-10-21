@@ -2,9 +2,9 @@
 // @name         Ctrip Mobile Lite
 // @name:zh-CN   携程移动版精简
 // @namespace    https://github.com/hxueh
-// @version      0.1.0
-// @description  Gives Ctrip's mobile web (m.ctrip.com) an iOS 27 Liquid Glass look with a floating glass tab bar, rounded cards and the system font. Blocks analytics, ad SDKs, app wake-up and incognito-detection scripts, and removes ads, app download prompts and floating badges. Follows the system dark mode.
-// @description:zh-CN 为携程移动网页（m.ctrip.com）加入 iOS 27 液态玻璃风格：悬浮玻璃标签栏、圆角卡片和系统字体。拦截统计、广告 SDK、唤起 App 和无痕检测脚本，移除广告、App 下载提示和悬浮角标，并跟随系统深色模式。
+// @version      0.1.1
+// @description  Restyles Ctrip mobile with Liquid Glass and system dark mode. Blocks analytics, ads, app launches, and incognito detection. Removes download prompts and floating badges.
+// @description:zh-CN 为携程移动网页加入液态玻璃风格，跟随系统深色模式。拦截统计、广告、App 唤起和无痕检测，移除下载提示与悬浮角标。
 // @author       hxueh
 // @license      MIT
 // @icon         data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA2NCA2NCc+PHJlY3Qgd2lkdGg9JzY0JyBoZWlnaHQ9JzY0JyByeD0nMTQnIGZpbGw9JyMyODdkZmEnLz48dGV4dCB4PSczMicgeT0nNDQnIGZvbnQtZmFtaWx5PSdIZWx2ZXRpY2EsQXJpYWwsc2Fucy1zZXJpZicgZm9udC1zaXplPSczMCcgZm9udC13ZWlnaHQ9JzcwMCcgZmlsbD0nI2ZmZicgdGV4dC1hbmNob3I9J21pZGRsZSc+QzwvdGV4dD48L3N2Zz4=

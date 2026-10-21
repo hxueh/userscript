@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Taobao & Tmall Lite
 // @namespace    https://github.com/hxueh
-// @version      0.4.0
-// @description  Strips Taobao and Tmall desktop pages down to search, product images, price, SKU and buy buttons, removes popups, ads, sponsored results and recommendations, and restyles results and item pages in an iOS look that works at phone and desktop width and follows the system dark mode.
+// @version      0.4.1
+// @description  Simplifies Taobao and Tmall search and product pages with an iOS-style layout for phones and desktops. Keeps product details and buy buttons, removes ads and popups, and follows system dark mode.
 // @author       hxueh
 // @license      MIT
 // @homepageURL  https://github.com/hxueh
