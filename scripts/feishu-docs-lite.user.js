@@ -2,9 +2,9 @@
 // @name         Feishu Docs Lite
 // @name:zh-CN   飞书文档精简
 // @namespace    https://github.com/hxueh
-// @version      0.3.0
-// @description  Makes Feishu Docs lighter and calmer, starting with the Wiki (/wiki and /wiki/*). Blocks Tea/Rangers analytics, Slardar monitoring, ad trackers and accessibility-testing tooling before they load, and stops their global error and long-task observers. Uses the system font. Colours and light or dark mode stay as Feishu sets them from its own Appearance setting.
-// @description:zh-CN 让飞书文档更轻、更安静，先支持知识库（/wiki 与 /wiki/*）。在加载前拦截 Tea/Rangers 统计、Slardar 监控、广告追踪和无障碍测试工具，并停止它们的全局错误与长任务监听。使用系统字体。配色和浅色或深色模式保持飞书原样，由飞书自身的外观设置决定。
+// @version      0.3.1
+// @description  Makes Feishu Wiki lighter by blocking analytics, monitoring, ad trackers, and testing tools. Uses the system font and keeps Feishu’s theme settings.
+// @description:zh-CN 精简飞书知识库，拦截统计、监控、广告追踪和测试工具。使用系统字体，保留飞书的主题设置。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico

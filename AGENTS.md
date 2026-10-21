@@ -14,6 +14,8 @@ list and the Greasyfork setup.
 
 ## Rules for editing a script
 
+- Keep each `@description`, including each localized description, concise and
+  at most 300 characters.
 - Bump `@version` in the same commit as any code change. Greasyfork delivers an
   update to users only when the version changes.
 - Do not add `@downloadURL` or `@updateURL`. Greasyfork injects them when it
