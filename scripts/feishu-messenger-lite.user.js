@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.10.3
+// @version      0.10.4
 // @description  Restyles Feishu messages and contacts with Liquid Glass, light and dark themes, resizable lists, and an iPhone layout. Blocks analytics and ad trackers, and hides the download prompt.
 // @description:zh-CN 为飞书消息和通讯录加入液态玻璃风格、浅色与深色主题、可调宽度列表和 iPhone 布局。拦截统计与广告追踪，隐藏下载提示。
 // @author       hxueh
@@ -924,16 +924,8 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
 }
 `;
 
-    // Some managers run before <html> exists; wait for it.
-    const whenRoot = (fn) => {
-        if (document.documentElement) { fn(); return; }
-        const wait = new MutationObserver(() => {
-            if (!document.documentElement) return;
-            wait.disconnect();
-            fn();
-        });
-        wait.observe(document, { childList: true });
-    };
+    // Some managers run before <html> exists; the shared library waits for it.
+    const whenRoot = FeishuLiteBlocker.whenRoot;
 
     const style = document.createElement('style');
     style.id = 'fml-style';
@@ -1686,14 +1678,8 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
             hidden.clear();
         }
     };
-    for (const method of ['pushState', 'replaceState']) {
-        const native = history[method];
-        history[method] = function () {
-            const result = native.apply(this, arguments);
-            sync();
-            return result;
-        };
-    }
-    window.addEventListener('popstate', sync);
+    // The shared library patches history once and runs this after
+    // pushState, replaceState and popstate.
+    FeishuLiteBlocker.onRoute(sync);
     whenRoot(sync);
 })(false);
