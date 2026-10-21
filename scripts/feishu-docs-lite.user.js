@@ -2,15 +2,16 @@
 // @name         Feishu Docs Lite
 // @name:zh-CN   飞书文档精简
 // @namespace    https://github.com/hxueh
-// @version      0.3.1
-// @description  Makes Feishu Wiki lighter by blocking analytics, monitoring, ad trackers, and testing tools. Uses the system font and keeps Feishu’s theme settings.
-// @description:zh-CN 精简飞书知识库，拦截统计、监控、广告追踪和测试工具。使用系统字体，保留飞书的主题设置。
+// @version      0.4.0
+// @description  Makes Feishu Wiki and Docs lighter by blocking analytics, monitoring, ad trackers, and testing tools. Uses the system font and keeps Feishu’s theme settings.
+// @description:zh-CN 精简飞书知识库和云文档，拦截统计、监控、广告追踪和测试工具。使用系统字体，保留飞书的主题设置。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
 // @match        https://*.feishu.cn/wiki
 // @match        https://*.feishu.cn/wiki/*
 // @match        https://*.feishu.cn/wiki?*
+// @match        https://*.feishu.cn/docx/*
 // @require      https://update.greasyfork.org/scripts/601258/Feishu%20Lite%20Blocker.js
 // @run-at       document-start
 // @grant        none
@@ -34,7 +35,9 @@
     // ---------------------------------------------------------------------
     const APPS = [
         ['wiki', /^\/wiki(?:\/|$)/],
-        // Planned: ['docx', /^\/docx\//], ['sheets', /^\/sheets\//], ['base', /^\/base\//],
+        // A doc opened by its own link, outside the wiki tree.
+        ['docx', /^\/docx\//],
+        // Planned: ['sheets', /^\/sheets\//], ['base', /^\/base\//],
     ];
     const appOf = (path) => APPS.find(([, re]) => re.test(path))?.[0] || null;
 
