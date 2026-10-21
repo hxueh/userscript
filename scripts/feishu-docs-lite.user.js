@@ -2,9 +2,9 @@
 // @name         Feishu Docs Lite
 // @name:zh-CN   飞书文档精简
 // @namespace    https://github.com/hxueh
-// @version      0.6.0
-// @description  Makes Feishu Drive, Wiki, Docs, Sheets and Base lighter: blocks analytics, monitoring and ad trackers, uses system fonts (also in whiteboards, which saves a 17 MB download), removes tracking characters from titles, hides the help button and speeds up menus. Keeps Feishu’s theme.
-// @description:zh-CN 精简飞书云盘、知识库、云文档、电子表格和多维表格：拦截统计、监控和广告追踪，使用系统字体（画板也使用，省去 17 MB 下载），去除标题中的追踪字符，隐藏帮助按钮，加快菜单动画。保留飞书的主题设置。
+// @version      0.6.1
+// @description  Makes Feishu Drive, Wiki, Docs, Sheets and Base lighter: blocks analytics, monitoring and ad trackers, uses system fonts (also in whiteboards, which saves a 17 MB download), removes tracking characters from titles and hides the help button. Keeps Feishu’s theme.
+// @description:zh-CN 精简飞书云盘、知识库、云文档、电子表格和多维表格：拦截统计、监控和广告追踪，使用系统字体（画板也使用，省去 17 MB 下载），去除标题中的追踪字符，并隐藏帮助按钮。保留飞书的主题设置。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -107,7 +107,7 @@
     }
 
     // ---------------------------------------------------------------------
-    // Page CSS: system font, no help button, quick transitions. Colours and
+    // Page CSS: system font and no help button. Colours and
     // light or dark stay as Feishu sets them from its own Appearance
     // setting. Plain CSS, so no script runs while you read, scroll or type.
     // ---------------------------------------------------------------------
@@ -128,14 +128,11 @@ html.fdl body {
 /* The floating "?" help button covers the bottom right of the document.
    Help stays in the "..." menu. */
 html.fdl .help-block.group-btns { display: none !important; }
-/* Menus, panels and hover states open at once. 1 ms instead of 0, because
-   with no duration the browser does not fire transitionend, and some code
-   waits for it before it continues. Animations are not changed, so loading
-   spinners keep turning. */
-html.fdl *, html.fdl *::before, html.fdl *::after {
-    transition-duration: 1ms !important;
-    transition-delay: 0s !important;
-}
+/* Do not set transition-duration on all elements. Every element has
+   transition-property: all with a duration of 0, so any duration makes
+   each element animate every change. The doc blocks that Feishu moves
+   and resizes while you scroll then lag one frame, Feishu reads stale
+   positions and corrects the scroll, and the page bounces. */
 `;
     const pageStyle = document.createElement('style');
     pageStyle.className = 'fdl-style';
