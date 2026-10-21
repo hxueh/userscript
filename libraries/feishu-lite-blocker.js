@@ -2,9 +2,9 @@
 // @name         Feishu Lite Blocker
 // @name:zh-CN   飞书精简拦截库
 // @namespace    https://github.com/hxueh
-// @version      1.2.0
-// @description  Library for the Feishu Lite userscripts. Blocks Tea/Rangers analytics, Slardar monitoring, accessibility-testing tooling, the Security Policy SDK, audit event uploads, compliance pings and third-party marketing tags on Feishu pages before they load, turns their globals into harmless stubs, and hides page watermarks. Load it with @require and @run-at document-start, then call FeishuLiteBlocker.install().
-// @description:zh-CN 飞书精简系列用户脚本的公共库。在飞书页面加载前拦截 Tea/Rangers 统计、Slardar 监控、无障碍测试工具、Security Policy SDK、审计事件上报、合规心跳和第三方营销代码，把它们的全局对象替换为无害的空实现，并隐藏页面水印。用 @require 引入并以 @run-at document-start 运行，然后调用 FeishuLiteBlocker.install()。
+// @version      1.3.0
+// @description  Library for the Feishu Lite userscripts. Blocks analytics, monitoring, audit uploads, compliance pings and marketing tags before they load, stubs their globals, hides watermarks and can strip invisible tracking characters from the page title. Also gives route-change and page-ready helpers.
+// @description:zh-CN 飞书精简系列用户脚本的公共库。在加载前拦截统计、监控、审计上报、合规心跳和营销代码，替换其全局对象，隐藏水印，并可去除页面标题中的隐形追踪字符。另提供路由变化和页面就绪辅助函数。
 // @author       hxueh
 // @license      MIT
 // ==/UserScript==
@@ -18,7 +18,15 @@
 //         when: () => location.pathname.startsWith('/wiki'),  // optional route check
 //         patterns: ['/some-extra-script\\.js'],              // optional, regex sources
 //         stubs: ['lintrk'],                                  // optional no-op globals
+//         cleanTitle: true,                                   // optional, see below
 //     });
+//
+// Helpers that the scripts share, so each one does not patch history or
+// wait for the parser on its own:
+//
+//     FeishuLiteBlocker.onRoute(fn);   // after pushState, replaceState, popstate
+//     FeishuLiteBlocker.whenRoot(fn);  // once <html> exists
+//     FeishuLiteBlocker.whenHead(fn);  // once <head> exists
 //
 // The page-wide patches are installed once per window, even when several
 // scripts, or one script running twice on a rewritten document, call
@@ -66,6 +74,30 @@ var FeishuLiteBlocker = (function () {
     // key is the same in all copies, and it survives document.open().
     const KEY = Symbol.for('feishu-lite-blocker');
     const state = window[KEY] || (window[KEY] = { rules: [], patched: false, sink: null });
+    // Callbacks for route changes. A Set in the shared state, so a second
+    // copy of the library adds to the same list.
+    if (!state.routeFns) state.routeFns = new Set();
+
+    // At document-start the parser may not have created <html> or <head>
+    // yet. Observe only until the element exists, then stop.
+    const whenRoot = (fn) => {
+        if (document.documentElement) { fn(); return; }
+        const wait = new MutationObserver(() => {
+            if (!document.documentElement) return;
+            wait.disconnect();
+            fn();
+        });
+        wait.observe(document, { childList: true });
+    };
+    const whenHead = (fn) => whenRoot(() => {
+        if (document.head) { fn(); return; }
+        const wait = new MutationObserver(() => {
+            if (!document.head) return;
+            wait.disconnect();
+            fn();
+        });
+        wait.observe(document.documentElement, { childList: true });
+    });
 
     // Slardar is called through a global whose name the page chooses (for
     // example Slardar, BearWebSlardarWeb or _lmp_slardar_client_...), as
@@ -142,34 +174,57 @@ div[style*='position: fixed'][style*='pointer-events: none'][style*='height: 100
         // navigates to another app, its watermark becomes visible again.
         state.watermarkStyle.media = state.rules.some((rule) => rule.when()) ? 'all' : 'not all';
     };
-    const installWatermarks = () => {
+    // CSS handles later watermark updates, so only the first sync waits.
+    const installWatermarks = () => whenRoot(syncWatermarks);
+
+    // Feishu Docs puts about 45 invisible characters (zero-width spaces,
+    // joiners, bidi controls) before each document title. They change on
+    // every load, which suggests a per-user tracking code, and they go into
+    // the tab, the history and bookmarks. Body text is not touched: the
+    // editor uses zero-width spaces there to place the caret.
+    const TITLE_JUNK = /[\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/;
+    const TITLE_JUNK_ALL = new RegExp(TITLE_JUNK.source, 'g');
+    const syncTitle = () => {
+        if (!state.rules.some((rule) => rule.cleanTitle && rule.when())) return;
+        const title = document.title;
+        // Write only when there is something to remove. The write fires the
+        // observer again, and the clean title then stops the loop here.
+        if (TITLE_JUNK.test(title)) document.title = title.replace(TITLE_JUNK_ALL, '');
+    };
+    // Feishu sets the title once per navigation, by replacing the <title>
+    // text or the element. Watch <head> for both. document.open() makes a
+    // new <head>, so attach again when the observed one is gone.
+    const watchTitle = () => whenHead(() => {
+        if (state.titleObserver && state.titleHead === document.head) return;
+        state.titleObserver?.disconnect();
+        state.titleHead = document.head;
+        state.titleObserver = new MutationObserver(syncTitle);
+        state.titleObserver.observe(document.head, { childList: true, subtree: true, characterData: true });
+        syncTitle();
+    });
+
+    // One history patch serves the library and every script. An error in
+    // one callback is logged and does not stop the others.
+    const dispatchRoute = () => {
         syncWatermarks();
-        // At document-start the parser may not have created <html> yet.
-        // Observe only until it exists; CSS handles later watermark updates.
-        if (!document.documentElement && !state.watermarkWait) {
-            state.watermarkWait = new MutationObserver(() => {
-                if (!document.documentElement) return;
-                state.watermarkWait.disconnect();
-                state.watermarkWait = null;
-                syncWatermarks();
-            });
-            state.watermarkWait.observe(document, { childList: true });
+        syncTitle();
+        for (const fn of state.routeFns) {
+            try { fn(); } catch (error) { console.error('[Feishu Lite Blocker] Route callback failed:', error); }
         }
-        // document.open() can clear window listeners, so restore this one
-        // on each install. Remove the prior callback when another copy loads.
-        if (state.watermarkPopstate) window.removeEventListener('popstate', state.watermarkPopstate);
-        state.watermarkPopstate = syncWatermarks;
-        window.addEventListener('popstate', state.watermarkPopstate);
+    };
+    const onRoute = (fn) => {
+        state.routeFns.add(fn);
+        return () => state.routeFns.delete(fn);
     };
 
     const patch = () => {
-        // Feishu changes routes without a page load. Update the CSS after
-        // the URL changes, and preserve the history method's return value.
+        // Feishu changes routes without a page load. Run the route callbacks
+        // after the URL changes, and preserve the history method's return value.
         for (const method of ['pushState', 'replaceState']) {
             const native = history[method];
             history[method] = function () {
                 const result = native.apply(this, arguments);
-                syncWatermarks();
+                dispatchRoute();
                 return result;
             };
         }
@@ -259,19 +314,25 @@ div[style*='position: fixed'][style*='pointer-events: none'][style*='height: 100
         }, true);
     };
 
-    const install = ({ patterns = [], when = () => true, stubs = [] } = {}) => {
+    const install = ({ patterns = [], when = () => true, stubs = [], cleanTitle = false } = {}) => {
         // A second call with the same patterns (a script that runs again on
         // a rewritten document) replaces the rule instead of adding a copy.
         const source = [...BASE_PATTERNS, ...patterns].join('|');
         const existing = state.rules.find((rule) => rule.re.source === new RegExp(source).source);
-        if (existing) existing.when = when;
-        else state.rules.push({ re: new RegExp(source, 'i'), when });
+        if (existing) Object.assign(existing, { when, cleanTitle });
+        else state.rules.push({ re: new RegExp(source, 'i'), when, cleanTitle });
         if (!state.patched) {
             state.patched = true;
             patch();
         }
         if (document.readyState === 'loading') guardParser();
         installWatermarks();
+        if (cleanTitle) watchTitle();
+        // document.open() can clear window listeners, so add this one on
+        // each install. Remove the prior callback when another copy loads.
+        if (state.popstate) window.removeEventListener('popstate', state.popstate);
+        state.popstate = dispatchRoute;
+        window.addEventListener('popstate', state.popstate);
         // Stubs for globals that inline snippets call, so they do not throw.
         const noop = () => {};
         for (const name of ['gtag', 'ga', 'collectEvent', 'lintrk', ...stubs]) {
@@ -282,5 +343,5 @@ div[style*='position: fixed'][style*='pointer-events: none'][style*='height: 100
         if (!window._hmt) window._hmt = [];
     };
 
-    return { install, isBlocked, sink, BASE_PATTERNS };
+    return { install, isBlocked, sink, BASE_PATTERNS, onRoute, whenRoot, whenHead };
 })();
