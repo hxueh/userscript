@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.10.2
+// @version      0.10.3
 // @description  Restyles Feishu messages and contacts with Liquid Glass, light and dark themes, resizable lists, and an iPhone layout. Blocks analytics and ad trackers, and hides the download prompt.
 // @description:zh-CN 为飞书消息和通讯录加入液态玻璃风格、浅色与深色主题、可调宽度列表和 iPhone 布局。拦截统计与广告追踪，隐藏下载提示。
 // @author       hxueh
@@ -1212,8 +1212,8 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     //   by time. A wrapper on the feed store's getState() moves it to the
     //   end of the list.
     // - Feishu's message service can sync a chat's latest messages into the
-    //   IM SDK without showing them (needResponse: false), so the chat opens
-    //   from local data. This runs for chats that are not folded and have
+    //   IM SDK without showing them, so the chat opens from local data. This
+    //   runs for plain chats (not topic groups) that are not folded and have
     //   fewer than 100 members, one at a time, in idle time, and again only
     //   when the chat has a new message. It does not mark anything as read;
     //   a check below turns it off if that ever changes.
@@ -1334,13 +1334,17 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
 
     // Chats in the main list that are not in "Collapsed Chats", have fewer
     // than 100 members (0 for one-to-one chats), are not open, and have a
-    // message that has not been synced yet.
+    // message that has not been synced yet. Topic groups (chatMode other
+    // than 1) and groups shown as topics (chatDisplayModeSetting 2) are
+    // skipped: Feishu loads them topic by topic, and a plain sync of their
+    // latest messages left some topics unable to load.
     const prefetchCandidates = () => {
         const state = feedStore.getState();
         const out = [];
         for (const id of state.message?.list?.items || []) {
             const p = state.previews?.[id];
             if (!p || p.type !== 1 || p.parentCardId || p.isMember === false) continue;
+            if (p.chatMode !== 1 || p.chatDisplayModeSetting !== 1) continue;
             if ((p.userCount || 0) >= PREFETCH_MAX_MEMBERS || id === state.status?.activeFeedId) continue;
             if (prefetched.get(id) === p.lastMessagePosition) continue;
             out.push(id);
@@ -1372,7 +1376,13 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
             const p = feedStore.getState().previews?.[id];
             if (!p || id === feedStore.getState().status?.activeFeedId) continue;
             try {
-                await messageService.getChatMessages({ chatId: id, count: 20, needResponse: false });
+                // needResponse must stay true. With false, the service returns
+                // before it adds the chat's members to Feishu's name map, so
+                // the chat opens with English names only (for example on
+                // reactions) until Feishu fetches the members again. The
+                // response itself is only normalized, not stored, so it is
+                // dropped here.
+                await messageService.getChatMessages({ chatId: id, count: 20, needResponse: true });
                 prefetched.set(id, p.lastMessagePosition);
                 checkReadPosition(id, p.readPosition);
             } catch { /* skipped; the next sweep tries again */ }
