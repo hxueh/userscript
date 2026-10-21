@@ -2,9 +2,9 @@
 // @name         Feishu Docs Lite
 // @name:zh-CN   飞书文档精简
 // @namespace    https://github.com/hxueh
-// @version      0.6.1
-// @description  Makes Feishu Drive, Wiki, Docs, Sheets and Base lighter: blocks analytics, monitoring and ad trackers, uses system fonts (also in whiteboards, which saves a 17 MB download), removes tracking characters from titles and hides the help button. Keeps Feishu’s theme.
-// @description:zh-CN 精简飞书云盘、知识库、云文档、电子表格和多维表格：拦截统计、监控和广告追踪，使用系统字体（画板也使用，省去 17 MB 下载），去除标题中的追踪字符，并隐藏帮助按钮。保留飞书的主题设置。
+// @version      0.7.0
+// @description  Makes Feishu Drive, Wiki, Docs, Sheets and Base lighter: blocks analytics, monitoring and ad trackers, uses system fonts (also in sheet cells and in whiteboards, which saves a 17 MB download), removes tracking characters from titles and hides the help button. Keeps Feishu’s theme.
+// @description:zh-CN 精简飞书云盘、知识库、云文档、电子表格和多维表格：拦截统计、监控和广告追踪，使用系统字体（表格单元格和画板也使用，画板省去 17 MB 下载），去除标题中的追踪字符，并隐藏帮助按钮。保留飞书的主题设置。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -45,6 +45,7 @@
         ['docx', /^\/docx\//],
         // A spreadsheet opened by its own link. Sheets draws its cells on a
         // canvas, so the font CSS below changes only the toolbar and menus.
+        // The canvas font is changed separately (see "Sheet cell font").
         ['sheets', /^\/sheets\//],
         // A Base (multidimensional table) opened by its own link.
         ['base', /^\/base\//],
@@ -104,6 +105,48 @@
                 super(family, source, descriptors);
             }
         };
+    }
+
+    // ---------------------------------------------------------------------
+    // Sheet cell font. Sheets draws cells, row numbers and column letters on
+    // a canvas, so the page CSS cannot change their font. Each ctx.font starts
+    // with four Feishu families before the system font: MonospacedNumber
+    // (Helvetica Neue for the digits 0-9 only), LarkHackSafariFont,
+    // LarkEmojiFont and LarkChineseQuote (for （ ） and “ ”). Remove them, so
+    // cells use the same system font as the rest of the page. Digits are then
+    // proportional, so numbers in a column can be a little out of line. Emoji
+    // still come from "Apple Color Emoji" and the other emoji fonts at the end
+    // of Feishu's list. This covers Sheets, sheets in the wiki and sheet blocks
+    // in docs. It runs at document-start, before Feishu measures text, so
+    // column widths and line wrapping match what is drawn.
+    // ---------------------------------------------------------------------
+    // Feishu writes the list both with and without a space after each comma.
+    const CELL_FONTS = /\b(?:MonospacedNumber|LarkHackSafariFont|LarkEmojiFont|LarkChineseQuote)\s*,\s*/g;
+    // The setter runs on each font change while the sheet draws, but there
+    // are only a few distinct values, so keep the results.
+    const cellFonts = new Map();
+    const cellFont = (value) => {
+        let result = cellFonts.get(value);
+        if (result === undefined) {
+            if (cellFonts.size > 256) cellFonts.clear();
+            result = value.replace(CELL_FONTS, '');
+            cellFonts.set(value, result);
+        }
+        return result;
+    };
+    for (const Context of [window.CanvasRenderingContext2D, window.OffscreenCanvasRenderingContext2D]) {
+        const font = Context && Object.getOwnPropertyDescriptor(Context.prototype, 'font');
+        if (!font?.set || !font.configurable) continue;
+        Object.defineProperty(Context.prototype, 'font', {
+            ...font,
+            set(value) {
+                // Other fonts, such as the whiteboard's, pass through unchanged.
+                if (typeof value === 'string' && (value.includes('Lark') || value.includes('MonospacedNumber'))) {
+                    value = cellFont(value);
+                }
+                font.set.call(this, value);
+            },
+        });
     }
 
     // ---------------------------------------------------------------------
