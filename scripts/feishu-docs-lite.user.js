@@ -2,9 +2,9 @@
 // @name         Feishu Docs Lite
 // @name:zh-CN   飞书文档精简
 // @namespace    https://github.com/hxueh
-// @version      0.4.0
-// @description  Makes Feishu Wiki and Docs lighter by blocking analytics, monitoring, ad trackers, and testing tools. Uses the system font and keeps Feishu’s theme settings.
-// @description:zh-CN 精简飞书知识库和云文档，拦截统计、监控、广告追踪和测试工具。使用系统字体，保留飞书的主题设置。
+// @version      0.5.0
+// @description  Makes Feishu Wiki, Docs, Sheets and Base lighter by blocking analytics, monitoring, ad trackers, and testing tools. Uses the system font and keeps Feishu’s theme settings.
+// @description:zh-CN 精简飞书知识库、云文档、电子表格和多维表格，拦截统计、监控、广告追踪和测试工具。使用系统字体，保留飞书的主题设置。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -12,6 +12,8 @@
 // @match        https://*.feishu.cn/wiki/*
 // @match        https://*.feishu.cn/wiki?*
 // @match        https://*.feishu.cn/docx/*
+// @match        https://*.feishu.cn/sheets/*
+// @match        https://*.feishu.cn/base/*
 // @require      https://update.greasyfork.org/scripts/601258/Feishu%20Lite%20Blocker.js
 // @run-at       document-start
 // @grant        none
@@ -37,7 +39,11 @@
         ['wiki', /^\/wiki(?:\/|$)/],
         // A doc opened by its own link, outside the wiki tree.
         ['docx', /^\/docx\//],
-        // Planned: ['sheets', /^\/sheets\//], ['base', /^\/base\//],
+        // A spreadsheet opened by its own link. Sheets draws its cells on a
+        // canvas, so the font CSS below changes only the toolbar and menus.
+        ['sheets', /^\/sheets\//],
+        // A Base (multidimensional table) opened by its own link.
+        ['base', /^\/base\//],
     ];
     const appOf = (path) => APPS.find(([, re]) => re.test(path))?.[0] || null;
 
