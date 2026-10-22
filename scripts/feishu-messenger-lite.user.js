@@ -2,14 +2,16 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.10.4
-// @description  Restyles Feishu messages and contacts with Liquid Glass, light and dark themes, resizable lists, and an iPhone layout. Blocks analytics and ad trackers, and hides the download prompt.
-// @description:zh-CN 为飞书消息和通讯录加入液态玻璃风格、浅色与深色主题、可调宽度列表和 iPhone 布局。拦截统计与广告追踪，隐藏下载提示。
+// @version      0.11.0
+// @description  Restyles Feishu messages, contacts, tasks and Workplace with Liquid Glass, light and dark themes, resizable lists, and an iPhone layout. Blocks analytics and ad trackers, and hides the download prompt.
+// @description:zh-CN 为飞书消息、通讯录、任务和工作台加入液态玻璃风格、浅色与深色主题、可调宽度列表和 iPhone 布局。拦截统计与广告追踪，隐藏下载提示。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
 // @match        https://*.feishu.cn/next/messenger*
 // @match        https://*.feishu.cn/next/contacts*
+// @match        https://*.feishu.cn/next/task*
+// @match        https://*.feishu.cn/next/workplace*
 // @require      https://update.greasyfork.org/scripts/601258/Feishu%20Lite%20Blocker.js
 // @run-at       document-start
 // @grant        none
@@ -27,9 +29,10 @@
 
     // Feishu is one single-page app across Messenger, Contacts, Docs,
     // Calendar and the rest, so every part of this script checks the route
-    // first. The script styles Messenger and Contacts; section() tells them
-    // apart for the phone layout, which differs between the two pages.
-    const section = () => location.pathname.match(/^\/next\/(messenger|contacts)(?:\/|$)/)?.[1] || null;
+    // first. The script styles Messenger, Contacts, Task and Workplace;
+    // section() tells them apart for the phone layout and the list widths,
+    // which differ between the pages.
+    const section = () => location.pathname.match(/^\/next\/(messenger|contacts|task|workplace)(?:\/|$)/)?.[1] || null;
     const onFeishuPage = () => section() !== null;
 
     // ---------------------------------------------------------------------
@@ -538,8 +541,9 @@ html.fml .a11y_feed_card_item, html.fml .a11y_feed_card_item > * { transition: n
    the back swipe returns to the list. Feishu's own script hides the list
    with an inline display: none and squeezes the chat at this width, so
    these rules use !important to win over inline styles. The sidebar
-   (Calendar, Docs and the rest) is hidden: this script is for Messenger
-   and Contacts. */
+   (Calendar, Docs and the rest) is hidden: this script is for Messenger,
+   Contacts, Task and Workplace, and Task and Workplace simply fill the
+   screen. */
 html.fml.fml-mobile .appNavbar,
 html.fml.fml-mobile .sidebar-resizer { display: none !important; }
 html.fml.fml-mobile .appLayout {
@@ -566,7 +570,7 @@ html.fml.fml-mobile.fml-chat-open .contactPageNav { display: none !important; }
 html.fml.fml-mobile.fml-chat-open .contactTab { display: flex !important; width: 100% !important; min-width: 0 !important; flex: 1 1 auto !important; }
 html.fml.fml-mobile .contactTab_header { padding-left: 44px !important; }
 /* Full-screen panels, as on iPhone, instead of floating cards. */
-html.fml.fml-mobile :is(.page-content-wrapper, .contactPageNav, .contactTab) {
+html.fml.fml-mobile :is(.page-content-wrapper, .contactPageNav, .contactTab, .workplace-wrapper, #root-todo > div > div > div) {
     border-radius: 0 !important;
     box-shadow: none !important;
 }
@@ -657,6 +661,57 @@ html.fml .contactTab .list_items .larkc-card {
     background-clip: padding-box !important;
     box-shadow: var(--fml-glass-edge) !important;
 }
+/* Task: its nav column and its content column become two glass panels,
+   as in Messenger. Their class names are hashed, so the selectors follow
+   the DOM from the stable #root-todo: root > wrapper > row > columns. The
+   columns' own solid inner layers are cleared so the glass shows. */
+html.fml #root-todo, html.fml #root-todo > div { background: transparent !important; }
+html.fml #root-todo > div > div { gap: 8px; background: transparent !important; }
+html.fml #root-todo > div > div > div {
+    background: color-mix(in srgb, var(--bg-body) 68%, transparent) !important;
+    border: 0 !important;
+    border-radius: var(--fml-radius-panel) !important;
+    corner-shape: squircle;
+    overflow: hidden;
+    box-shadow: var(--fml-glass-edge), var(--fml-panel-shadow) !important;
+}
+html.fml #root-todo > div > div > div > div { background-color: transparent !important; }
+/* Workplace: one glass panel with glass app cards, as the chat rows. */
+html.fml .workplace-wrapper {
+    background: color-mix(in srgb, var(--bg-body) 68%, transparent) !important;
+    border-radius: var(--fml-radius-panel) !important;
+    corner-shape: squircle;
+    box-shadow: var(--fml-glass-edge), var(--fml-panel-shadow) !important;
+}
+html.fml .appcenter-header-wrap {
+    background: transparent !important;
+    border-radius: 0 !important;
+    box-shadow: inset 0 -.5px 0 var(--line-divider-default) !important;
+}
+html.fml .appcenter-search-input {
+    background: var(--fill-tag) !important;
+    border-color: transparent !important;
+    border-radius: 999px !important;
+    box-shadow: var(--fml-glass-edge) !important;
+}
+html.fml :is(.appcenter-card-wrap, .appcenter-add-card) {
+    background: color-mix(in srgb, var(--bg-float) 60%, transparent) !important;
+    border-radius: var(--fml-radius-m) !important;
+    corner-shape: squircle;
+    box-shadow: var(--fml-glass-edge), 0 1px 3px rgba(0, 0, 0, .08) !important;
+    transition: background-color .15s ease;
+}
+html.fml :is(.appcenter-card-wrap, .appcenter-add-card):hover {
+    background: color-mix(in srgb, var(--bg-float) 85%, transparent) !important;
+}
+/* The category bar sticks to the top while the apps scroll under it, so it
+   is the one panel-wide surface that needs a real blur. */
+html.fml .category-list-wrap { background: transparent !important; }
+html.fml .category-list-section {
+    background: color-mix(in srgb, var(--bg-body) 50%, transparent) !important;
+    -webkit-backdrop-filter: var(--fml-glass-filter);
+    backdrop-filter: var(--fml-glass-filter);
+}
 /* The sidebar glass is an inset pseudo-element, so the bar keeps its
    layout; isolation keeps the glass behind the bar's content. */
 html.fml .appNavbar {
@@ -724,7 +779,8 @@ html.fml:not(.fml-nav-expanded) .appNavbar-navHeader {
 html.fml:not(.fml-nav-expanded) .quick-jump-enter { margin: 0 !important; }
 html.fml:not(.fml-nav-expanded) :is(.appNavbar-search-input-wrapper, .appNavbar-navbarMenu) { padding: 0 5px 0 11px !important; }
 html.fml:not(.fml-nav-expanded) :is(.appNavbar-search-input, .navbarMenu) { justify-content: center; padding: 0 !important; }
-html.fml:not(.fml-nav-expanded) :is(.search-input-box-desc, .search-input-box-shortcut, .navbarMenu-content) { display: none !important; }
+/* Scoped to the sidebar: Workplace's own search box uses the same classes. */
+html.fml:not(.fml-nav-expanded) .appNavbar :is(.search-input-box-desc, .search-input-box-shortcut, .navbarMenu-content) { display: none !important; }
 /* The unread badge moves from the end of the row to the icon's corner. */
 html.fml:not(.fml-nav-expanded) .navbarMenu-badge {
     position: absolute !important;
@@ -917,7 +973,8 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     html.fml :is(.ud__tooltip__content, .ud__tooltip-inner, [role="tooltip"]) {
         background: var(--bg-tips, #1f2329) !important;
     }
-    html.fml :is(.page-content-wrapper, .contactPageNav, .contactTab, .chatContainer__headerWrapper, .lark__editor--default) {
+    html.fml :is(.page-content-wrapper, .contactPageNav, .contactTab, .chatContainer__headerWrapper, .lark__editor--default,
+                 #root-todo > div > div > div, .workplace-wrapper, .category-list-section) {
         background: var(--bg-body) !important;
     }
     html.fml .appNavbar::before { background: var(--bg-body-overlay); }
@@ -1639,8 +1696,8 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     }, true);
 
     // ---------------------------------------------------------------------
-    // Route tracking: the theme and the observer are on only on /next/messenger
-    // and /next/contacts.
+    // Route tracking: the theme and the observer are on only on
+    // /next/messenger, /next/contacts, /next/task and /next/workplace.
     // ---------------------------------------------------------------------
     let active = false;
     let lastSection = null;
@@ -1652,6 +1709,9 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
         if (now !== lastSection) {
             lastSection = now;
             closeChatView();
+            // The prefetch waits for the chat list, which only Messenger
+            // has, so a visit that starts in Task or Workplace boots it here.
+            if (now === 'messenger' && active) bootPrefetch();
         }
         if (want === active) return;
         active = want;
@@ -1659,7 +1719,7 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
         if (want) {
             observer.observe(document.documentElement, { childList: true, subtree: true });
             if (document.body) scan(document.body);
-            bootPrefetch();
+            if (now === 'messenger') bootPrefetch();
             placeNavToggle();
             placeResizer();
             if (feedStore) sweep();
