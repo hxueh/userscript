@@ -2,9 +2,9 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.11.0
-// @description  Restyles Feishu messages, contacts, tasks and Workplace with Liquid Glass, light and dark themes, resizable lists, and an iPhone layout. Blocks analytics and ad trackers, and hides the download prompt.
-// @description:zh-CN 为飞书消息、通讯录、任务和工作台加入液态玻璃风格、浅色与深色主题、可调宽度列表和 iPhone 布局。拦截统计与广告追踪，隐藏下载提示。
+// @version      0.12.0
+// @description  Restyles Feishu messages, contacts, tasks, Workplace and Calendar with Liquid Glass, light and dark themes, resizable lists, and an iPhone layout. Blocks analytics and ad trackers, and hides the download prompt.
+// @description:zh-CN 为飞书消息、通讯录、任务、工作台和日历加入液态玻璃风格、浅色与深色主题、可调宽度列表和 iPhone 布局。拦截统计与广告追踪，隐藏下载提示。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -12,6 +12,7 @@
 // @match        https://*.feishu.cn/next/contacts*
 // @match        https://*.feishu.cn/next/task*
 // @match        https://*.feishu.cn/next/workplace*
+// @match        https://*.feishu.cn/calendar*
 // @require      https://update.greasyfork.org/scripts/601258/Feishu%20Lite%20Blocker.js
 // @run-at       document-start
 // @grant        none
@@ -29,10 +30,11 @@
 
     // Feishu is one single-page app across Messenger, Contacts, Docs,
     // Calendar and the rest, so every part of this script checks the route
-    // first. The script styles Messenger, Contacts, Task and Workplace;
-    // section() tells them apart for the phone layout and the list widths,
-    // which differ between the pages.
-    const section = () => location.pathname.match(/^\/next\/(messenger|contacts|task|workplace)(?:\/|$)/)?.[1] || null;
+    // first. The script styles Messenger, Contacts, Task, Workplace and
+    // Calendar; section() tells them apart for the phone layout and the list
+    // widths, which differ between the pages. Calendar is a separate app at
+    // /calendar (the sidebar opens it in a new tab), not under /next.
+    const section = () => location.pathname.match(/^\/(?:next\/(messenger|contacts|task|workplace)|(calendar))(?:\/|$)/)?.slice(1).find(Boolean) || null;
     const onFeishuPage = () => section() !== null;
 
     // ---------------------------------------------------------------------
@@ -60,9 +62,14 @@
     const PHONE_UA = /iPhone|iPod|Android.+Mobile/i.test(navigator.userAgent);
     const TOUCH_MAC = navigator.platform === 'MacIntel' && realTouchPoints > 1;
     const DESKTOP_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15';
-    if ((PHONE_UA || TOUCH_MAC) && !desktopLoaded) {
+    // Calendar does not start again in a document that a script rewrites
+    // (tested: it stays on its loading spinner, with or without this
+    // script), so a phone gets Feishu's own Calendar page. The Mac user
+    // agent goes only with the reload, so Calendar sees the real phone.
+    const RELOAD = PHONE_UA && section() !== 'calendar';
+    if ((RELOAD || TOUCH_MAC) && !desktopLoaded) {
         const fake = [['maxTouchPoints', 0]];
-        if (PHONE_UA) fake.push(['userAgent', DESKTOP_UA], ['appVersion', DESKTOP_UA.slice(8)], ['platform', 'MacIntel']);
+        if (RELOAD) fake.push(['userAgent', DESKTOP_UA], ['appVersion', DESKTOP_UA.slice(8)], ['platform', 'MacIntel']);
         for (const [key, value] of fake) {
             Object.defineProperty(Navigator.prototype, key, { configurable: true, get: () => value });
         }
@@ -111,7 +118,7 @@
         document.write(html);
         document.close();
     };
-    if (PHONE_UA && !desktopLoaded && onFeishuPage()) {
+    if (RELOAD && !desktopLoaded && onFeishuPage()) {
         loadDesktopApp();
         return;
     }
@@ -542,8 +549,8 @@ html.fml .a11y_feed_card_item, html.fml .a11y_feed_card_item > * { transition: n
    with an inline display: none and squeezes the chat at this width, so
    these rules use !important to win over inline styles. The sidebar
    (Calendar, Docs and the rest) is hidden: this script is for Messenger,
-   Contacts, Task and Workplace, and Task and Workplace simply fill the
-   screen. */
+   Contacts, Task, Workplace and Calendar, and the last three simply fill
+   the screen. */
 html.fml.fml-mobile .appNavbar,
 html.fml.fml-mobile .sidebar-resizer { display: none !important; }
 html.fml.fml-mobile .appLayout {
@@ -571,6 +578,17 @@ html.fml.fml-mobile.fml-chat-open .contactTab { display: flex !important; width:
 html.fml.fml-mobile .contactTab_header { padding-left: 44px !important; }
 /* Full-screen panels, as on iPhone, instead of floating cards. */
 html.fml.fml-mobile :is(.page-content-wrapper, .contactPageNav, .contactTab, .workplace-wrapper, #root-todo > div > div > div) {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+/* Calendar: the grid fills the screen, as Calendar on iPhone. The sidebar
+   with the month and the calendar list is hidden; Today and the arrows in
+   the toolbar still move between days. */
+html.fml.fml-mobile #calendar-tab :is(.tool-panel, .tool-calendar-dragger) { display: none !important; }
+html.fml.fml-mobile #calendar-tab :is(.default-page, .create-event-page .main) {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+html.fml.fml-mobile #calendar-tab :is(.calendar-view, .create-event-page .left) {
     border-radius: 0 !important;
     box-shadow: none !important;
 }
@@ -712,6 +730,234 @@ html.fml .category-list-section {
     -webkit-backdrop-filter: var(--fml-glass-filter);
     backdrop-filter: var(--fml-glass-filter);
 }
+/* ---- Calendar ----------------------------------------------------------- */
+/* Calendar is a separate app at /calendar with fixed light colours and no
+   Feishu tokens, so these rules set its colours from the palette above.
+   The layout follows Calendar on macOS 27: a glass sidebar with the month
+   and the calendar list, and a glass panel with the grid. */
+html.fml body:has(#calendar-tab) { background: var(--fml-wallpaper) !important; }
+html.fml #calendar-tab, html.fml #calendar-tab > div,
+html.fml #calendar-tab :is(.calendar-header, .tool-bar-navigator, .timezone, .padding) { background: transparent !important; }
+html.fml #calendar-tab .default-page {
+    box-sizing: border-box;
+    padding: 8px;
+    background: transparent !important;
+}
+html.fml #calendar-tab :is(.tool-panel, .calendar-view) {
+    background: color-mix(in srgb, var(--bg-body) 68%, transparent) !important;
+    border: 0 !important;
+    border-radius: var(--fml-radius-panel) !important;
+    corner-shape: squircle;
+    overflow: hidden;
+    box-shadow: var(--fml-glass-edge), var(--fml-panel-shadow) !important;
+}
+html.fml #calendar-tab .tool-calendar-dragger { background: transparent !important; width: 8px !important; }
+/* Feishu's text and grid lines have fixed greys. They take the palette's
+   colours here; inline colours (events, calendar dots) still win. */
+html.fml #calendar-tab :is(.tool-panel, .calendar-view) { color: var(--text-title); }
+html.fml #calendar-tab :is(.tool-panel, .calendar-view) * { color: inherit; }
+html.fml #calendar-tab :not(.now-pointer) { border-color: var(--line-divider-default); }
+/* The grid lines are 1px pseudo-elements with a fixed grey background. */
+html.fml #calendar-tab :is(.calendar, .padding, .header-cell, .calendar-timeline, .row-line-item, .day-column, .week-row, .calendar-header)::before,
+html.fml #calendar-tab :is(.calendar, .padding, .header-cell, .calendar-timeline, .row-line-item, .day-column, .week-row, .calendar-header)::after {
+    background-color: var(--line-divider-default) !important;
+}
+html.fml #calendar-tab :is(.larkc-dayPanel-header, .larkc-dayPanel-date__othermonth, .calendar-timeline-slot,
+                           .timezone, .title-text, [class*="WeekHeaderCell-index-module__weekLabel"]) {
+    color: var(--text-caption);
+}
+html.fml #calendar-tab .larkc-dayPanel-date__othermonth { opacity: .55; }
+
+/* Toolbar: capsule buttons and a segmented control, as in macOS 27. */
+html.fml #calendar-tab .tool-bar { background: transparent !important; }
+html.fml #calendar-tab .tool-bar .label { font-weight: 700; letter-spacing: -.01em; }
+html.fml #calendar-tab .tool-bar-navigator .label-btn {
+    height: 30px;
+    padding: 0 14px;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: var(--fill-tag) !important;
+    box-shadow: var(--fml-glass-edge);
+    font-weight: 500;
+}
+html.fml #calendar-tab .tool-bar-navigator .btn { border-radius: 999px !important; }
+html.fml #calendar-tab :is(.tool-bar-navigator .label-btn, .tool-bar-navigator .btn, .larkc-pickerToolBar-icon):hover {
+    background: var(--fill-hover) !important;
+}
+html.fml #calendar-tab .mode-section {
+    padding: 2px;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: var(--fill-tag) !important;
+    box-shadow: var(--fml-glass-edge);
+}
+html.fml #calendar-tab .mode-section .label-btn {
+    border-radius: 999px !important;
+    color: var(--text-title) !important;
+    background: transparent !important;
+    transition: background-color .15s ease;
+}
+html.fml #calendar-tab .mode-section .label-btn.selected {
+    background: var(--bg-float) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .14), var(--fml-glass-edge);
+    font-weight: 600;
+}
+
+/* Day headers: today's date in a red circle, as in Apple Calendar. */
+html.fml #calendar-tab [class*="HeaderCell-index-module__isToday"] [class*="WeekHeaderCell-index-module__weekLabel"] { color: var(--fml-red); }
+html.fml #calendar-tab [class*="HeaderCell-index-module__isToday"] [class*="WeekHeaderCell-index-module__dateLabel"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.45em;
+    height: 1.45em;
+    padding: 0 .2em;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: var(--fml-red);
+    color: #fff;
+}
+/* Today's column: a faint tint instead of Feishu's grey block. */
+html.fml #calendar-tab :is(.day-column.isToday, .monthview-day-block.today) {
+    background: color-mix(in srgb, var(--fml-red) 3%, transparent) !important;
+}
+/* Day view: hours outside your working time get a faint shade. */
+html.fml #calendar-tab .work-time-mask-item-vertical { background: color-mix(in srgb, var(--text-title) 4%, transparent) !important; }
+/* Month view: today's date in the same red circle. */
+html.fml #calendar-tab .weekday-label.today .weekday-label-wrapper { background: var(--fml-red) !important; color: #fff; font-weight: 600; }
+
+/* The current time: a red line and label. */
+html.fml #calendar-tab .now-pointer { border-color: color-mix(in srgb, var(--fml-red) 35%, transparent) !important; }
+html.fml #calendar-tab .now-pointer.is-today-pointer { border-color: var(--fml-red) !important; }
+html.fml #calendar-tab .now-pointer.is-today-pointer::before { background-color: var(--fml-red) !important; }
+html.fml #calendar-tab .calendar-timeline-slot-now { color: var(--fml-red) !important; font-weight: 600; }
+
+/* Events: rounded tiles. The wrapper's white backs the faded past events,
+   so it takes the panel colour. */
+html.fml #calendar-tab :is(.event-instance-wrapper, .event-transformer, .allday-wrapper, .month-transformer) {
+    background: var(--bg-body) !important;
+    border-radius: 6px;
+}
+html.fml #calendar-tab :is(.event-instance, .all-day-event-instance, .event-instance-past-wrapper) { border-radius: 6px !important; }
+/* A bar in the calendar colour on the left edge, as on macOS. */
+html.fml #calendar-tab .event-instance { box-shadow: inset 3px 0 0 currentColor; }
+html.fml.fml-dark #calendar-tab .event-instance { box-shadow: inset 3px 0 0 color-mix(in srgb, currentColor 70%, #fff); }
+/* A past event is faded by a white layer over it; the layer takes the
+   panel colour so it fades towards the panel in both themes. */
+html.fml #calendar-tab :is(.past-event-instance, .all-day-event-instance-is-past)::after { background-color: var(--bg-body) !important; }
+/* In dark mode an event's fill comes from its text colour (Feishu sets
+   both inline, per calendar): a dark tint with lighter text, as on macOS. */
+html.fml.fml-dark #calendar-tab :is(.event-instance, .all-day-event-instance) {
+    background-color: color-mix(in srgb, currentColor 34%, var(--bg-body)) !important;
+}
+html.fml.fml-dark #calendar-tab :is(.event-instance, .all-day-event-instance) > * {
+    color: color-mix(in srgb, currentColor 45%, #fff);
+}
+
+/* Month in the sidebar. */
+html.fml #calendar-tab .larkc-pickerToolBar-label { font-weight: 700; }
+html.fml #calendar-tab .larkc-pickerToolBar-icon { border-radius: 999px; }
+html.fml #calendar-tab .larkc-dayPanel-date { transition: background-color .15s ease; }
+html.fml #calendar-tab .larkc-dayPanel-date:hover { background: var(--fill-hover) !important; }
+html.fml #calendar-tab .larkc-dayPanel-date__selected { border: 0 !important; background: var(--fill-tag) !important; font-weight: 600; }
+html.fml #calendar-tab .larkc-dayPanel-date__today { border: 0 !important; background: var(--fml-red) !important; color: #fff !important; font-weight: 600; }
+
+/* Sidebar: search field and calendar list. */
+html.fml #calendar-tab [class*="CalendarSearch"] input {
+    background: var(--fill-tag) !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    box-shadow: var(--fml-glass-edge);
+}
+html.fml #calendar-tab .calendar-item { border-radius: 8px; margin: 0 6px; }
+html.fml #calendar-tab .calendar-item:hover { background: var(--fill-hover) !important; }
+html.fml #calendar-tab .title.my .title-text { font-weight: 600; }
+
+/* The "+" button: a glass-edged circle in the accent colour. */
+html.fml #calendar-tab .add-new-event-btn {
+    background: var(--fml-blue) !important;
+    box-shadow: var(--fml-glass-edge), 0 6px 18px color-mix(in srgb, var(--fml-blue) 40%, transparent) !important;
+    transition: transform .15s ease;
+}
+html.fml #calendar-tab .add-new-event-btn:active { transform: scale(.94); }
+html.fml #calendar-tab .add-new-event-btn svg { color: #fff; }
+/* Events you have not answered are striped. The stripes are a light tint
+   of the calendar colour, so in dark mode they come from the text colour. */
+html.fml.fml-dark #calendar-tab .event-instance[style*="gradient"] {
+    background-color: var(--bg-body) !important;
+    background-image: repeating-linear-gradient(135deg, color-mix(in srgb, currentColor 32%, transparent) 0 5px, transparent 5px 10px) !important;
+}
+
+/* Event details and the "N more" list in Month view: glass cards. The
+   details header keeps the calendar colour that Feishu sets inline.
+   Feishu's cards are white with dark text, so their text takes the
+   palette colours. */
+html.fml #calendar-tab .month-view-show-more { color: var(--text-title); }
+html.fml #calendar-tab .month-view-show-more * { color: inherit; }
+html.fml #calendar-tab :is(.event-detail, .month-view-show-more) {
+    background: color-mix(in srgb, var(--bg-float) 82%, transparent) !important;
+    -webkit-backdrop-filter: var(--fml-glass-filter);
+    backdrop-filter: var(--fml-glass-filter);
+    border-radius: var(--fml-radius-l) !important;
+    corner-shape: squircle;
+    overflow: hidden;
+    box-shadow: var(--fml-glass-edge), var(--fml-glass-shadow) !important;
+}
+html.fml.fml-dark #calendar-tab .event-detail { color: var(--text-title); }
+html.fml.fml-dark #calendar-tab .event-detail :not(.event-detail--header, .event-detail--header *) { color: inherit; }
+html.fml.fml-dark #calendar-tab .event-detail :is(.participate-detail, .detail-content.is-text) { color: var(--text-caption); }
+/* The answer bar (Yes / No / Maybe) at the bottom of the card. */
+html.fml #calendar-tab .event-detail .selector-area { background: transparent !important; }
+html.fml #calendar-tab .event-detail .radio:not(._selected) { background: transparent !important; }
+html.fml #calendar-tab .event-detail .radio._selected { background: var(--fml-blue) !important; border-color: var(--fml-blue) !important; }
+/* Event editor (/calendar/eventedit): the form becomes a glass panel next
+   to the day grid, with filled fields and a capsule Save button. */
+html.fml #calendar-tab .create-event-page, html.fml #calendar-tab .create-event-page .main { background: transparent !important; }
+html.fml #calendar-tab .create-event-page .main { box-sizing: border-box; padding: 8px; gap: 8px; }
+html.fml #calendar-tab .create-event-page .left {
+    background: color-mix(in srgb, var(--bg-body) 68%, transparent) !important;
+    border-radius: var(--fml-radius-panel) !important;
+    corner-shape: squircle;
+    box-shadow: var(--fml-glass-edge), var(--fml-panel-shadow) !important;
+    color: var(--text-title);
+}
+html.fml #calendar-tab .create-event-page .left * { color: inherit; }
+html.fml #calendar-tab .create-event-page .left :is(input, textarea, ._selection, .add-room) {
+    background: var(--fill-tag) !important;
+    border-color: transparent !important;
+    border-radius: var(--fml-radius-s) !important;
+    corner-shape: squircle;
+}
+html.fml #calendar-tab .create-event-page .left :is(input, textarea)::placeholder { color: var(--text-placeholder); }
+html.fml #calendar-tab .create-event-page .left :is(input, textarea, ._selection):focus-within {
+    box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--fml-blue) 35%, transparent) !important;
+}
+html.fml #calendar-tab .larkc-btn-primary {
+    background: var(--fml-blue) !important;
+    color: #fff !important;
+    border-radius: 999px !important;
+}
+html.fml #calendar-tab .create-event-page :is(.timezone-btn, .add-reminder-enable) { color: var(--fml-blue) !important; }
+/* The description editor and its toolbar. */
+html.fml #calendar-tab .create-event-page :is(.adit-wrapper, .adit-plate) { background: transparent !important; }
+html.fml #calendar-tab .create-event-page .adit-group::before { background-color: var(--line-divider-default) !important; }
+/* The button that hides the free/busy grid. */
+html.fml #calendar-tab .createEventPage--layout--expandLine {
+    background: var(--bg-float) !important;
+    box-shadow: var(--fml-glass-edge), 0 1px 3px rgba(0, 0, 0, .14);
+}
+/* Free/busy grid: the same lines as the calendar, and the new event in
+   the accent colour instead of grey. */
+html.fml #calendar-tab .calendar-timeline.timeline { background: transparent !important; }
+html.fml #calendar-tab .hour-segment-slot::after { background-color: var(--line-divider-default) !important; }
+html.fml #calendar-tab .shadow-event {
+    background: color-mix(in srgb, var(--fml-blue) 35%, var(--bg-body)) !important;
+    color: var(--text-title) !important;
+    border-radius: 6px;
+    box-shadow: inset 3px 0 0 var(--fml-blue);
+}
+/* A disabled checkbox: a light grey box with a grey tick. */
+html.fml #calendar-tab .larkc-checkbox-disable svg { background: var(--fill-tag) !important; color: var(--text-placeholder) !important; }
 /* The sidebar glass is an inset pseudo-element, so the bar keeps its
    layout; isolation keeps the glass behind the bar's content. */
 html.fml .appNavbar {
@@ -974,9 +1220,11 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
         background: var(--bg-tips, #1f2329) !important;
     }
     html.fml :is(.page-content-wrapper, .contactPageNav, .contactTab, .chatContainer__headerWrapper, .lark__editor--default,
-                 #root-todo > div > div > div, .workplace-wrapper, .category-list-section) {
+                 #root-todo > div > div > div, .workplace-wrapper, .category-list-section,
+                 #calendar-tab .tool-panel, #calendar-tab .calendar-view, #calendar-tab .create-event-page .left) {
         background: var(--bg-body) !important;
     }
+    html.fml #calendar-tab :is(.event-detail, .month-view-show-more) { background: var(--bg-float) !important; }
     html.fml .appNavbar::before { background: var(--bg-body-overlay); }
 }
 `;
@@ -1697,7 +1945,8 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
 
     // ---------------------------------------------------------------------
     // Route tracking: the theme and the observer are on only on
-    // /next/messenger, /next/contacts, /next/task and /next/workplace.
+    // /next/messenger, /next/contacts, /next/task, /next/workplace and
+    // /calendar.
     // ---------------------------------------------------------------------
     let active = false;
     let lastSection = null;
