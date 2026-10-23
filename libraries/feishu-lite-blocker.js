@@ -2,7 +2,7 @@
 // @name         Feishu Lite Blocker
 // @name:zh-CN   飞书精简拦截库
 // @namespace    https://github.com/hxueh
-// @version      1.3.0
+// @version      1.4.0
 // @description  Library for the Feishu Lite userscripts. Blocks analytics, monitoring, audit uploads, compliance pings and marketing tags before they load, stubs their globals, hides watermarks and can strip invisible tracking characters from the page title. Also gives route-change and page-ready helpers.
 // @description:zh-CN 飞书精简系列用户脚本的公共库。在加载前拦截统计、监控、审计上报、合规心跳和营销代码，替换其全局对象，隐藏水印，并可去除页面标题中的隐形追踪字符。另提供路由变化和页面就绪辅助函数。
 // @author       hxueh
@@ -19,7 +19,13 @@
 //         patterns: ['/some-extra-script\\.js'],              // optional, regex sources
 //         stubs: ['lintrk'],                                  // optional no-op globals
 //         cleanTitle: true,                                   // optional, see below
+//         base: false,     // optional: block only `patterns`, not BASE_PATTERNS
+//         slardar: false,  // optional: do not stub window.Slardar in advance
 //     });
+//
+// FeishuLiteBlocker.supports lists the options above that this version
+// knows, so a script can check for them: a userscript manager may still
+// have an older copy of the library cached.
 //
 // Helpers that the scripts share, so each one does not patch history or
 // wait for the parser on its own:
@@ -314,10 +320,15 @@ div[style*='position: fixed'][style*='pointer-events: none'][style*='height: 100
         }, true);
     };
 
-    const install = ({ patterns = [], when = () => true, stubs = [], cleanTitle = false } = {}) => {
+    // base: false leaves out BASE_PATTERNS, so a page that breaks with one
+    // of them blocks only the patterns it lists. slardar: false does not
+    // put the sink in place of window.Slardar before the page's own SDK.
+    const install = ({ patterns = [], base = true, slardar = true, when = () => true, stubs = [], cleanTitle = false } = {}) => {
         // A second call with the same patterns (a script that runs again on
         // a rewritten document) replaces the rule instead of adding a copy.
-        const source = [...BASE_PATTERNS, ...patterns].join('|');
+        // An empty list would match every URL, so it becomes a pattern
+        // that matches none.
+        const source = [...(base ? BASE_PATTERNS : []), ...patterns].join('|') || '(?!)';
         const existing = state.rules.find((rule) => rule.re.source === new RegExp(source).source);
         if (existing) Object.assign(existing, { when, cleanTitle });
         else state.rules.push({ re: new RegExp(source, 'i'), when, cleanTitle });
@@ -338,10 +349,12 @@ div[style*='position: fixed'][style*='pointer-events: none'][style*='height: 100
         for (const name of ['gtag', 'ga', 'collectEvent', 'lintrk', ...stubs]) {
             if (!window[name]) window[name] = noop;
         }
-        if (when() && !window.Slardar) window.Slardar = sink;
+        if (slardar && when() && !window.Slardar) window.Slardar = sink;
         if (!window.dataLayer) window.dataLayer = [];
         if (!window._hmt) window._hmt = [];
     };
 
-    return { install, isBlocked, sink, BASE_PATTERNS, onRoute, whenRoot, whenHead };
+    const supports = { base: true, slardar: true };
+
+    return { install, isBlocked, sink, supports, BASE_PATTERNS, onRoute, whenRoot, whenHead };
 })();
