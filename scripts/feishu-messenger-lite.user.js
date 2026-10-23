@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.13.0
+// @version      0.13.1
 // @description  Restyles Feishu messages, contacts, tasks, Workplace and Calendar with Liquid Glass, light and dark themes, and resizable lists. Blocks analytics and ad trackers, and hides the download prompt.
 // @description:zh-CN 为飞书消息、通讯录、任务、工作台和日历加入液态玻璃风格、浅色与深色主题和可调宽度列表。拦截统计与广告追踪，隐藏下载提示。
 // @author       hxueh
@@ -603,9 +603,14 @@ html.fml .category-list-section {
 html.fml body:has(#calendar-tab) { background: var(--fml-wallpaper) !important; }
 html.fml #calendar-tab, html.fml #calendar-tab > div,
 html.fml #calendar-tab :is(.calendar-header, .tool-bar-navigator, .timezone, .padding) { background: transparent !important; }
+/* The page is a flex row: sidebar, grid. The gap separates the two glass
+   panels. Feishu places its drag handle absolutely, at a left offset equal
+   to the sidebar's width, so the handle moves right by the page padding
+   and, at 8px wide, fills the gap. */
 html.fml #calendar-tab .default-page {
     box-sizing: border-box;
     padding: 8px;
+    gap: 8px;
     background: transparent !important;
 }
 html.fml #calendar-tab :is(.tool-panel, .calendar-view) {
@@ -616,7 +621,7 @@ html.fml #calendar-tab :is(.tool-panel, .calendar-view) {
     overflow: hidden;
     box-shadow: var(--fml-glass-edge), var(--fml-panel-shadow) !important;
 }
-html.fml #calendar-tab .tool-calendar-dragger { background: transparent !important; width: 8px !important; }
+html.fml #calendar-tab .tool-calendar-dragger { background: transparent !important; width: 8px !important; margin-left: 8px; }
 /* The library hides watermarks only on pages where one of its rules
    applies. With an older cached library Calendar has no rule (see install
    above), so Calendar also hides them here with the library's selectors. */
