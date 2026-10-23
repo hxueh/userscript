@@ -2,9 +2,9 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.12.1
-// @description  Restyles Feishu messages, contacts, tasks, Workplace and Calendar with Liquid Glass, light and dark themes, resizable lists, and an iPhone layout. Blocks analytics and ad trackers, and hides the download prompt.
-// @description:zh-CN 为飞书消息、通讯录、任务、工作台和日历加入液态玻璃风格、浅色与深色主题、可调宽度列表和 iPhone 布局。拦截统计与广告追踪，隐藏下载提示。
+// @version      0.13.0
+// @description  Restyles Feishu messages, contacts, tasks, Workplace and Calendar with Liquid Glass, light and dark themes, and resizable lists. Blocks analytics and ad trackers, and hides the download prompt.
+// @description:zh-CN 为飞书消息、通讯录、任务、工作台和日历加入液态玻璃风格、浅色与深色主题和可调宽度列表。拦截统计与广告追踪，隐藏下载提示。
 // @author       hxueh
 // @license      MIT
 // @icon         https://www.feishu.cn/favicon.ico
@@ -19,9 +19,7 @@
 // @noframes
 // ==/UserScript==
 
-// The script is a named function so that, on a phone, it can run itself a
-// second time on the desktop page it loads (see loadDesktopApp below).
-(function fml(desktopLoaded) {
+(function () {
     'use strict';
 
     // Add ?fml=off to the URL to see the original page, for example to check
@@ -31,109 +29,48 @@
     // Feishu is one single-page app across Messenger, Contacts, Docs,
     // Calendar and the rest, so every part of this script checks the route
     // first. The script styles Messenger, Contacts, Task, Workplace and
-    // Calendar; section() tells them apart for the phone layout and the list
-    // widths, which differ between the pages. Calendar is a separate app at
-    // /calendar (the sidebar opens it in a new tab), not under /next.
+    // Calendar; section() tells them apart for the list widths and the
+    // request blocker, which differ between the pages. Calendar is a
+    // separate app at /calendar (the sidebar opens it in a new tab), not
+    // under /next.
     const section = () => location.pathname.match(/^\/(?:next\/(messenger|contacts|task|workplace)|(calendar))(?:\/|$)/)?.slice(1).find(Boolean) || null;
     const onFeishuPage = () => section() !== null;
-
-    // ---------------------------------------------------------------------
-    // Phones. Feishu's server answers a phone user agent with a small
-    // "unsupported browser" page that has no messenger in it, and a script
-    // cannot change the user agent of the page request. It can fetch the
-    // page again with a Mac Safari User-Agent header (WebKit sends a header
-    // set by fetch), then replace the error page with the result. Feishu's
-    // code then reads navigator.userAgent and navigator.platform, so those
-    // report the same Mac. Touch support is left as it is, so the phone
-    // layout below still turns on. With Safari's "Request Desktop Website",
-    // the user agent is already a Mac and none of this runs.
-    // ---------------------------------------------------------------------
-    //
-    // Feishu's own code has a second check: a "Mac" with more than two touch
-    // points is an iPad, and the iPad web version is refused. An iPhone in
-    // Safari's desktop mode looks exactly like that, so maxTouchPoints
-    // reports 0 to Feishu on any touch device that claims to be a Mac. The
-    // real value is kept for the phone layout (the second run of this
-    // function reads it from REAL_TOUCH_KEY, because by then the property
-    // reports 0).
-    const REAL_TOUCH_KEY = Symbol.for('fml.maxTouchPoints');
-    if (window[REAL_TOUCH_KEY] === undefined) window[REAL_TOUCH_KEY] = navigator.maxTouchPoints;
-    const realTouchPoints = window[REAL_TOUCH_KEY];
-    const PHONE_UA = /iPhone|iPod|Android.+Mobile/i.test(navigator.userAgent);
-    const TOUCH_MAC = navigator.platform === 'MacIntel' && realTouchPoints > 1;
-    const DESKTOP_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15';
-    // Calendar does not start again in a document that a script rewrites
-    // (tested: it stays on its loading spinner, with or without this
-    // script), so a phone gets Feishu's own Calendar page. The Mac user
-    // agent goes only with the reload, so Calendar sees the real phone.
-    const RELOAD = PHONE_UA && section() !== 'calendar';
-    if ((RELOAD || TOUCH_MAC) && !desktopLoaded) {
-        const fake = [['maxTouchPoints', 0]];
-        if (RELOAD) fake.push(['userAgent', DESKTOP_UA], ['appVersion', DESKTOP_UA.slice(8)], ['platform', 'MacIntel']);
-        for (const [key, value] of fake) {
-            Object.defineProperty(Navigator.prototype, key, { configurable: true, get: () => value });
-        }
-    }
-    const showDesktopHint = () => {
-        const add = () => {
-            const note = document.createElement('div');
-            note.style.cssText = 'margin:24px 16px;padding:12px 14px;border-radius:12px;background:#f2f2f7;color:#1c1c1e;font:15px/1.5 -apple-system,sans-serif';
-            note.textContent = '飞书消息精简无法自动加载桌面版。请在 Safari 地址栏点「大小」→「请求桌面网站」。'
-                + ' Feishu Messenger Lite could not load the desktop app. In Safari, tap aA → Request Desktop Website.';
-            document.body.appendChild(note);
-        };
-        if (document.body) add();
-        else document.addEventListener('DOMContentLoaded', add, { once: true });
-    };
-    const loadDesktopApp = async () => {
-        let response;
-        let html;
-        try {
-            response = await fetch(location.href, {
-                credentials: 'include',
-                cache: 'no-store',
-                headers: { 'User-Agent': DESKTOP_UA },
-            });
-            html = await response.text();
-        } catch {
-            showDesktopHint();
-            return;
-        }
-        // Logged out: the server redirects to the login page.
-        if (new URL(response.url).pathname !== location.pathname) {
-            location.replace(response.url);
-            return;
-        }
-        // The header did not get through, so the server sent the error page again.
-        if (!html.includes('<html') || html.includes('app-shell-not-support')) {
-            showDesktopHint();
-            return;
-        }
-        // Stop the error page, start a new document, set up this script on
-        // it (before Feishu's scripts run, so the request blocker is in
-        // place), then write Feishu's desktop page into it.
-        window.stop();
-        document.open();
-        fml(true);
-        document.write(html);
-        document.close();
-    };
-    if (RELOAD && !desktopLoaded && onFeishuPage()) {
-        loadDesktopApp();
-        return;
-    }
 
     // ---------------------------------------------------------------------
     // The shared library handles request filtering. Keep the route check here
     // because Feishu can navigate to other apps without a reload.
     // The IM gateway, WebSocket, passport and file CDNs remain available.
     //
-    // Calendar is left out. At page start the blocker stops Calendar's
-    // Policy SDK and stands in for its Slardar monitor; with that, Calendar's
-    // start-up throws ("SlardarWebExporter is not a constructor") and the
-    // page stays blank. Calendar keeps only the theme from this script.
+    // Calendar gets a narrower rule. With the full list, Calendar's start-up
+    // threw "SlardarWebExporter is not a constructor" and the page stayed
+    // blank (0.12.0). The full list also blocks scripts (the Slardar SDK,
+    // the Policy SDK) and puts a stand-in in place of window.Slardar, which
+    // changes how Calendar starts. Calendar's rule blocks only the requests
+    // that send data out, so its scripts load as without this script and
+    // nothing they collect leaves the browser. A blocked request gets an
+    // empty success response from the library.
     // ---------------------------------------------------------------------
-    FeishuLiteBlocker.install({ when: () => onFeishuPage() && section() !== 'calendar' });
+    const CALENDAR_PATTERNS = [
+        // Tea analytics event uploads.
+        '//mcs(?:-[a-z0-9-]+)?\\.(?:feishu\\.cn|larksuite\\.com|zijieapi\\.com)/',
+        // Slardar monitor: uploads and SDK settings.
+        '//slardar[^/]*\\.(?:feishu\\.cn|larksuite\\.com)/',
+        '/monitor_(?:browser|web)/(?:collect|settings)',
+        // Compliance pings, including the tenant probe.
+        '/lark/scs/compliance/ping(?:_tenant_restriction)?/?(?:[?#]|$)',
+        // Audit event uploads (both endpoints of the audit SDK).
+        '/suite/security/audit/client_events/create/?(?:[?#]|$)',
+        '/suite/admin/security/events/?(?:[?#]|$)',
+        // The captcha SDK's own telemetry; the captcha itself still loads.
+        '//verify\\.snssdk\\.com/captcha/reportFrontend',
+    ];
+    const inCalendar = () => section() === 'calendar';
+    FeishuLiteBlocker.install({ when: () => onFeishuPage() && !inCalendar() });
+    // An older cached library ignores base and slardar and would apply the
+    // full list, so Calendar is then left unblocked, as in 0.12.1.
+    if (FeishuLiteBlocker.supports?.base && FeishuLiteBlocker.supports?.slardar) {
+        FeishuLiteBlocker.install({ patterns: CALENDAR_PATTERNS, base: false, slardar: false, when: inCalendar });
+    }
 
     // ---------------------------------------------------------------------
     // Theme. Feishu's Universe Design (UD) components have stable ud__* class
@@ -546,82 +483,6 @@ html.fml .a11y_feed_main_list .list_items > div > div > div { animation-duration
 html.fml .a11y_feed_main_list .list_items > div { transition: none !important; }
 html.fml .a11y_feed_card_item, html.fml .a11y_feed_card_item > * { transition: none !important; }
 
-/* ---- Phone layout (iOS Safari) ---------------------------------------- */
-/* html.fml-mobile is set by the script on touch phones and narrow windows.
-   The layout follows iOS Messages: the chat list fills the screen, a tap
-   shows the chat full screen (html.fml-chat-open), and the back button or
-   the back swipe returns to the list. Feishu's own script hides the list
-   with an inline display: none and squeezes the chat at this width, so
-   these rules use !important to win over inline styles. The sidebar
-   (Calendar, Docs and the rest) is hidden: this script is for Messenger,
-   Contacts, Task, Workplace and Calendar, and the last three simply fill
-   the screen. */
-html.fml.fml-mobile .appNavbar,
-html.fml.fml-mobile .sidebar-resizer { display: none !important; }
-html.fml.fml-mobile .appLayout {
-    /* 100dvh follows Safari's toolbars, so the message box stays visible. */
-    height: 100dvh !important;
-    box-sizing: border-box;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
-}
-html.fml.fml-mobile .appLayout-content,
-html.fml.fml-mobile .appLayout-content > div {
-    width: 100% !important;
-    min-width: 0 !important;
-    flex: 1 1 auto;
-}
-html.fml.fml-mobile .page-view-messenger { display: block !important; width: 100% !important; }
-html.fml.fml-mobile .page-view-messenger-chat { display: none !important; }
-html.fml.fml-mobile.fml-chat-open .page-view-messenger { display: none !important; }
-html.fml.fml-mobile.fml-chat-open .page-view-messenger-chat { display: block !important; width: 100% !important; }
-/* Contacts works the same way: the list of contact groups (.contactPageNav)
-   fills the screen, and a tap on a group shows its contacts (.contactTab). */
-html.fml.fml-mobile .contactPageNav { display: block !important; width: 100% !important; max-width: none !important; flex: 1 1 auto !important; }
-html.fml.fml-mobile .contactTab { display: none !important; }
-html.fml.fml-mobile.fml-chat-open .contactPageNav { display: none !important; }
-html.fml.fml-mobile.fml-chat-open .contactTab { display: flex !important; width: 100% !important; min-width: 0 !important; flex: 1 1 auto !important; }
-html.fml.fml-mobile .contactTab_header { padding-left: 44px !important; }
-/* Full-screen panels, as on iPhone, instead of floating cards. */
-html.fml.fml-mobile :is(.page-content-wrapper, .contactPageNav, .contactTab, .workplace-wrapper, #root-todo > div > div > div) {
-    border-radius: 0 !important;
-    box-shadow: none !important;
-}
-/* Calendar: the grid fills the screen, as Calendar on iPhone. The sidebar
-   with the month and the calendar list is hidden; Today and the arrows in
-   the toolbar still move between days. */
-html.fml.fml-mobile #calendar-tab :is(.tool-panel, .tool-calendar-dragger) { display: none !important; }
-html.fml.fml-mobile #calendar-tab :is(.default-page, .create-event-page .main) {
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
-}
-html.fml.fml-mobile #calendar-tab :is(.calendar-view, .create-event-page .left) {
-    border-radius: 0 !important;
-    box-shadow: none !important;
-}
-html.fml.fml-mobile .chatContainer__headerWrapper { padding-left: 44px !important; }
-html.fml.fml-mobile .lark__editor--default { margin-bottom: calc(env(safe-area-inset-bottom) + 4px) !important; }
-/* The back button is the script's own element, outside Feishu's React
-   tree, so a Feishu re-render cannot remove it. */
-.fml-back { display: none; }
-html.fml.fml-mobile.fml-chat-open .fml-back {
-    display: flex;
-    position: fixed;
-    z-index: 1000;
-    top: calc(env(safe-area-inset-top) + 16px);
-    left: calc(env(safe-area-inset-left) + 6px);
-    width: 36px;
-    height: 36px;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    border: 0;
-    border-radius: 999px;
-    background: transparent;
-    color: var(--fml-blue);
-    -webkit-tap-highlight-color: transparent;
-}
-html.fml.fml-mobile.fml-chat-open .fml-back:active { background: var(--fill-pressed); }
-html.fml.fml-mobile .fml-back svg { width: 22px; height: 22px; }
-
 /* ---- Scrollbars: thin overlay bars, as on macOS ----------------------- */
 html.fml * { scrollbar-width: thin; scrollbar-color: rgba(128, 128, 128, .45) transparent; }
 html.fml ::-webkit-scrollbar { width: 8px; height: 8px; background: transparent; }
@@ -652,7 +513,6 @@ html.fml :is(.messagesLayout, .appLayout-content, .appNavbar-navbarMenu,
    list and the contact list. Contacts has no .page-content-wrapper, so its
    two panels get the same glass and the same gap. */
 html.fml .contactPage { background: transparent !important; gap: 8px; }
-html.fml.fml-mobile .contactPage { gap: 0; }
 html.fml :is(.page-content-wrapper, .contactPageNav, .contactTab) {
     background: color-mix(in srgb, var(--bg-body) 68%, transparent) !important;
     border-radius: var(--fml-radius-panel) !important;
@@ -757,9 +617,9 @@ html.fml #calendar-tab :is(.tool-panel, .calendar-view) {
     box-shadow: var(--fml-glass-edge), var(--fml-panel-shadow) !important;
 }
 html.fml #calendar-tab .tool-calendar-dragger { background: transparent !important; width: 8px !important; }
-/* The library hides watermarks only on pages where it blocks requests, and
-   it does not block in Calendar (see install above), so Calendar hides them
-   here with the library's selectors. */
+/* The library hides watermarks only on pages where one of its rules
+   applies. With an older cached library Calendar has no rule (see install
+   above), so Calendar also hides them here with the library's selectors. */
 html.fml:has(#calendar-tab) :is(
     .suite-clear[style*='background-image: url("'],
     .suite-clear[style*='data:image/png;base64'],
@@ -1070,18 +930,17 @@ html.fml:not(.fml-nav-expanded) .user-auth-list_item { margin: 0 !important; }
    --fml-contacts-w from the user's drag and keeps them in localStorage.
    Feishu clamps the chat list at 288px (an inline min-width and the
    clamp in its own resizer), so the script owns both the width and the
-   drag. The chat takes the rest of the row. The phone layout is full
-   screen and keeps its own rules. */
-html.fml:not(.fml-mobile) .page-view-messenger { width: var(--fml-list-w, 260px) !important; flex: none !important; }
-html.fml:not(.fml-mobile) .page-view-messenger [style*="min-width: 288px"] { min-width: 0 !important; }
-html.fml:not(.fml-mobile) .page-view-messenger-chat { flex: 1 1 0 !important; width: auto !important; min-width: 0 !important; }
-html.fml:not(.fml-mobile) .contactPageNav { width: var(--fml-contacts-w, 260px) !important; min-width: 0 !important; max-width: none !important; flex: none !important; }
-html.fml:not(.fml-mobile) .contactTab { flex: 1 1 0 !important; width: auto !important; min-width: 0 !important; }
+   drag. The chat takes the rest of the row. */
+html.fml .page-view-messenger { width: var(--fml-list-w, 260px) !important; flex: none !important; }
+html.fml .page-view-messenger [style*="min-width: 288px"] { min-width: 0 !important; }
+html.fml .page-view-messenger-chat { flex: 1 1 0 !important; width: auto !important; min-width: 0 !important; }
+html.fml .contactPageNav { width: var(--fml-contacts-w, 260px) !important; min-width: 0 !important; max-width: none !important; flex: none !important; }
+html.fml .contactTab { flex: 1 1 0 !important; width: auto !important; min-width: 0 !important; }
 /* Contacts has no divider, so the script adds one in the 8px gap between
    the two panels. It is absolutely placed, so it takes no space. */
 html.fml .contactPage { position: relative; }
 .fml-resizer { display: none; }
-html.fml:not(.fml-mobile) .fml-resizer {
+html.fml .fml-resizer {
     display: block;
     position: absolute;
     z-index: 5;
@@ -1757,95 +1616,6 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     };
 
     // ---------------------------------------------------------------------
-    // Phone layout for iOS Safari. The top of this script makes Feishu see
-    // a Mac, so the phone is found by its real touch support and screen
-    // size instead. A narrow window on a
-    // computer gets the same layout.
-    // ---------------------------------------------------------------------
-    const isMobile = () => (realTouchPoints > 0 && Math.min(screen.width, screen.height) <= 500)
-        || window.innerWidth <= 640;
-    let mobile = false;
-
-    // In desktop mode Safari may lay the page out wider than the screen.
-    // This viewport keeps it at the phone's width, stops the zoom when a
-    // text field gets focus, and lets the page use the full screen so the
-    // safe-area padding in the CSS can keep clear of the notch.
-    const VIEWPORT = 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
-    const setViewport = () => {
-        if (!document.head) return;
-        let meta = document.querySelector('meta[name="viewport"]');
-        if (!meta) {
-            meta = document.createElement('meta');
-            meta.name = 'viewport';
-            document.head.appendChild(meta);
-        }
-        if (meta.content !== VIEWPORT) meta.content = VIEWPORT;
-    };
-
-    const backButton = document.createElement('button');
-    backButton.className = 'fml-back';
-    backButton.type = 'button';
-    backButton.setAttribute('aria-label', 'Back');
-    backButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 8 12l7 7"/></svg>';
-
-    // Opening a chat adds a history entry with the same URL, so Safari's
-    // back swipe and back button return to the list instead of leaving
-    // Feishu. Feishu's own history state is kept in the entry.
-    const openChatView = () => {
-        if (document.documentElement.classList.contains('fml-chat-open')) return;
-        document.documentElement.classList.add('fml-chat-open');
-        history.pushState({ ...(history.state || {}), fml: 'chat' }, '', location.href);
-    };
-    const closeChatView = () => document.documentElement.classList.remove('fml-chat-open');
-    backButton.addEventListener('click', () => {
-        if (history.state?.fml === 'chat') history.back(); // popstate closes the view
-        else closeChatView();
-    });
-    window.addEventListener('popstate', () => {
-        if (history.state?.fml !== 'chat') closeChatView();
-    });
-
-    const rowFeedId = (row) => {
-        const key = Object.keys(row).find((k) => k.startsWith('__reactInternalInstance') || k.startsWith('__reactFiber'));
-        for (let f = key && row[key], i = 0; f && i < 15; f = f.return, i++) {
-            if (typeof f.memoizedProps?.feedId === 'string') return f.memoizedProps.feedId;
-        }
-        return null;
-    };
-    // A tap on a chat row shows the chat. The Done button archives without
-    // opening, and "Collapsed Chats" opens its folder inside the list.
-    // In Contacts, a tap on a contact group shows its contacts. The group
-    // items have a type class (ORGANIZATION, GROUP and so on); the tenant
-    // item at the top has none and stays in the list.
-    document.addEventListener('click', (e) => {
-        if (!mobile || !active || !(e.target instanceof Element)) return;
-        if (section() === 'contacts') {
-            const item = e.target.closest('.contactPageNav_item');
-            if (item && item.classList.length > 1 && e.target.closest('.larkc-card')) openChatView();
-            return;
-        }
-        const row = e.target.closest('.a11y_feed_card_item');
-        if (!row || e.target.closest(DONE_BUTTON)) return;
-        const box = feedStore?.getState().status?.boxEntryId;
-        if (box && rowFeedId(row) === box) return;
-        openChatView();
-    }, true);
-
-    const syncMobile = () => {
-        const want = active && isMobile();
-        if (want !== mobile) {
-            mobile = want;
-            document.documentElement.classList.toggle('fml-mobile', want);
-            if (!want) closeChatView();
-        }
-        if (mobile) {
-            setViewport();
-            if (document.body && !backButton.isConnected) document.body.appendChild(backButton);
-        }
-    };
-    window.addEventListener('resize', () => { if (active) syncMobile(); });
-
-    // ---------------------------------------------------------------------
     // Tab menu (the sidebar with Messenger, Docs, Calendar and the rest).
     // It is narrow and shows icons only by default. A button below the tabs
     // expands it to Feishu's width with labels, and collapses it again. The
@@ -1926,7 +1696,7 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
         const page = section() === 'contacts' && document.querySelector('.contactPage');
         if (page && contactsResizer.parentElement !== page) page.appendChild(contactsResizer);
     };
-    const resizerAt = (e) => active && !mobile && e.target instanceof Element
+    const resizerAt = (e) => active && e.target instanceof Element
         && e.target.closest('.sidebar-resizer, .fml-resizer') && PANES[section()];
     // Stopping the pointerdown also stops the mousedown that follows it;
     // the mousedown is stopped too in case Feishu listens for it alone.
@@ -1974,12 +1744,9 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     let lastSection = null;
     const sync = () => {
         const want = onFeishuPage();
-        // Going between Messenger and Contacts keeps the script on, but the
-        // open chat or contact list belongs to the page that was left.
         const now = section();
         if (now !== lastSection) {
             lastSection = now;
-            closeChatView();
             // The prefetch waits for the chat list, which only Messenger
             // has, so a visit that starts in Task or Workplace boots it here.
             if (now === 'messenger' && active) bootPrefetch();
@@ -1994,11 +1761,7 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
             placeNavToggle();
             placeResizer();
             if (feedStore) sweep();
-            syncMobile();
-            // <body> may not exist yet at document-start.
-            if (!document.body) document.addEventListener('DOMContentLoaded', syncMobile, { once: true });
         } else {
-            syncMobile();
             observer.disconnect();
             pending = [];
             // The sidebar stays in Docs, Calendar and the rest; restore it.
@@ -2013,4 +1776,4 @@ html.fml :is([class*="message-image" i], [class*="messageImage" i], [class*="ima
     // pushState, replaceState and popstate.
     FeishuLiteBlocker.onRoute(sync);
     whenRoot(sync);
-})(false);
+})();
