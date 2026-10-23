@@ -2,7 +2,7 @@
 // @name         Feishu Messenger Lite
 // @name:zh-CN   飞书消息精简
 // @namespace    https://github.com/hxueh
-// @version      0.12.0
+// @version      0.12.1
 // @description  Restyles Feishu messages, contacts, tasks, Workplace and Calendar with Liquid Glass, light and dark themes, resizable lists, and an iPhone layout. Blocks analytics and ad trackers, and hides the download prompt.
 // @description:zh-CN 为飞书消息、通讯录、任务、工作台和日历加入液态玻璃风格、浅色与深色主题、可调宽度列表和 iPhone 布局。拦截统计与广告追踪，隐藏下载提示。
 // @author       hxueh
@@ -127,8 +127,13 @@
     // The shared library handles request filtering. Keep the route check here
     // because Feishu can navigate to other apps without a reload.
     // The IM gateway, WebSocket, passport and file CDNs remain available.
+    //
+    // Calendar is left out. At page start the blocker stops Calendar's
+    // Policy SDK and stands in for its Slardar monitor; with that, Calendar's
+    // start-up throws ("SlardarWebExporter is not a constructor") and the
+    // page stays blank. Calendar keeps only the theme from this script.
     // ---------------------------------------------------------------------
-    FeishuLiteBlocker.install({ when: onFeishuPage });
+    FeishuLiteBlocker.install({ when: () => onFeishuPage() && section() !== 'calendar' });
 
     // ---------------------------------------------------------------------
     // Theme. Feishu's Universe Design (UD) components have stable ud__* class
@@ -752,6 +757,23 @@ html.fml #calendar-tab :is(.tool-panel, .calendar-view) {
     box-shadow: var(--fml-glass-edge), var(--fml-panel-shadow) !important;
 }
 html.fml #calendar-tab .tool-calendar-dragger { background: transparent !important; width: 8px !important; }
+/* The library hides watermarks only on pages where it blocks requests, and
+   it does not block in Calendar (see install above), so Calendar hides them
+   here with the library's selectors. */
+html.fml:has(#calendar-tab) :is(
+    .suite-clear[style*='background-image: url("'],
+    .suite-clear[style*='data:image/png;base64'],
+    .ssrWaterMark,
+    div[style*='position: fixed'][style*='pointer-events: none'][style*='height: 100%'][style*='width: 100%'][style*='background-image: url("data:image/png;base64,'],
+    div[style*='position: fixed'][style*='pointer-events: none'][style*='height: 100%'][style*='width: 100%'][style*='background-repeat: repeat;']
+) {
+    transform: scale(0) !important;
+    height: 1px !important;
+    width: 1px !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
 /* Feishu's text and grid lines have fixed greys. They take the palette's
    colours here; inline colours (events, calendar dots) still win. */
 html.fml #calendar-tab :is(.tool-panel, .calendar-view) { color: var(--text-title); }
